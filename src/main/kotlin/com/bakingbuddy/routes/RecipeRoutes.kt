@@ -35,14 +35,6 @@ fun Route.recipeRoutes(
     get(path = "/api/recipes") {
 
         val recipes = recipeService.listRecipes()
-
-        if (recipes == null) {
-            call.respond(
-                io.ktor.http.HttpStatusCode.NotFound
-            )
-            return@get
-        }
-
         call.respond(recipes)
     }
 }
