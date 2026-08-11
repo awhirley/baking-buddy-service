@@ -10,4 +10,8 @@ class RecipeService {
     suspend fun getRecipe(id: UUID): Recipe? {
         return recipeRepository.findById(id)
     }
+    
+    suspend fun listRecipes(): List<Recipe> {
+        return recipeRepository.listAll()
+    }
 }

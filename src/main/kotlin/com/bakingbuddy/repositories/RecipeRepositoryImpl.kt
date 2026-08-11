@@ -26,4 +26,19 @@ class RecipeRepositoryImpl : RecipeRepository {
                 .singleOrNull()
         }
     }
+    
+    override suspend fun listAll(): List<Recipe> {
+        return transaction {
+            Recipes
+                .selectAll()
+                .map { row ->
+                    Recipe(
+                        id = row[Recipes.id].toString(),
+                        name = row[Recipes.name],
+                        description = row[Recipes.description],
+                        createdAt = null,
+                    )
+                }
+        }
+    }
 }

@@ -6,4 +6,6 @@ import java.util.UUID
 interface RecipeRepository {
 
     suspend fun findById(id: UUID): Recipe?
+        
+    suspend fun listAll(): List<Recipe>
 }
