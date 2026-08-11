@@ -2,6 +2,7 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(ktorLibs.plugins.ktor)
+    kotlin("plugin.serialization") version "2.4.0"
 }
 
 group = "com.bakingbuddy"
@@ -14,10 +15,15 @@ application {
 kotlin {
     jvmToolchain(21)
 }
+
 dependencies {
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.core)
     implementation(ktorLibs.server.netty)
+
+    implementation("io.ktor:ktor-server-content-negotiation")
+    implementation("io.ktor:ktor-serialization-kotlinx-json")
+
     implementation(libs.logback.classic)
 
     testImplementation(kotlin("test"))
