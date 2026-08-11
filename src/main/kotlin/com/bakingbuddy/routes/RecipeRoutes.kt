@@ -1,6 +1,8 @@
 package com.bakingbuddy.routes
 
 import com.bakingbuddy.services.RecipeService
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.util.UUID
@@ -36,5 +38,10 @@ fun Route.recipeRoutes(
 
         val recipes = recipeService.listRecipes()
         call.respond(recipes)
+    }
+    
+    post(path = "/api/recipes") {
+        val recipe = recipeService.createRecipe(call.receive())
+        call.respond(HttpStatusCode.Created, recipe)
     }
 }

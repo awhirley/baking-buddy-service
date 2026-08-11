@@ -1,8 +1,10 @@
 package com.bakingbuddy.repositories
 
 import com.bakingbuddy.database.Recipes
+import com.bakingbuddy.models.CreateRecipeRequest
 import com.bakingbuddy.models.Recipe
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -39,6 +41,25 @@ class RecipeRepositoryImpl : RecipeRepository {
                         createdAt = null,
                     )
                 }
+        }
+    }
+    
+    override suspend fun create(request: CreateRecipeRequest): Recipe {
+        val id = UUID.randomUUID()
+
+        return transaction {
+            Recipes.insert {
+                it[Recipes.id] = id.toKotlinUuid()
+                it[Recipes.name] = request.name
+                it[Recipes.description] = request.description
+            }
+
+            Recipe(
+                id = id.toString(),
+                name = request.name,
+                description = request.description,
+                createdAt = null
+            )
         }
     }
 }
