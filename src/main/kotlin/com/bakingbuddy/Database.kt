@@ -6,19 +6,29 @@ import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.configureDatabase() {
     val dotenv = Dotenv.load()
+    val environment: String? = System.getenv("APP_ENV") ?: dotenv.get("APP_ENV")
     
-    // TODO: Only check dotenv in development mode, otherwise use environment variables
-    // TODO: this does not fail gracefully
-    val url = dotenv.get("DATABASE_URL")
-        ?: error("DATABASE_URL is not set")
+    if (environment == null) {
+        error("APP_ENV is not set.")
+    }
+    
+    val (url, user, password) = when (environment) {
+        "production" -> Triple(
+            System.getenv("DATABASE_URL"),
+            System.getenv("DATABASE_USER"),
+            System.getenv("DATABASE_PASSWORD")
+        )
+        "development" -> Triple(
+            dotenv.get("DATABASE_URL"),
+            dotenv.get("DATABASE_USER"),
+            dotenv.get("DATABASE_PASSWORD")
+        )
+        else -> error("Unknown APP_ENV: $environment")
+    }
 
-    val user = dotenv.get("DATABASE_USER")
-        ?: error("DATABASE_USER is not set")
-
-    val password = dotenv.get("DATABASE_PASSWORD")
-        ?: error("DATABASE_PASSWORD is not set")
-        
-    environment.log.info("Connecting to database with URL: $url, user: $user")
+    if (url == null) { error("DATABASE_URL is not set") }
+    if (user == null) { error("DATABASE_USER is not set") }
+    if (password == null) { error("DATABASE_PASSWORD is not set") }
 
     Database.connect(
         url = url,
