@@ -3,13 +3,14 @@ package com.bakingbuddy.routes
 import com.bakingbuddy.services.RecipeService
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.util.UUID
 
 fun Route.recipeRoutes(
     recipeService: RecipeService
 ) {
-    get("/api/recipes/{id}") {
+    get(path = "/api/recipes/{id}") {
 
-        val id = call.parameters["id"]?.toIntOrNull()
+        val id = call.parameters["id"]?.let { UUID.fromString(it) }
 
         if (id == null) {
             call.respondText(

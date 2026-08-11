@@ -1,18 +1,13 @@
 package com.bakingbuddy.services
 
 import com.bakingbuddy.models.Recipe
+import com.bakingbuddy.repositories.RecipeRepositoryImpl
+import java.util.UUID
 
 class RecipeService {
+    private val recipeRepository = RecipeRepositoryImpl()
 
-    fun getRecipe(id: Int): Recipe? {
-        return if (id == 1) {
-            Recipe(
-                id = 1,
-                name = "Chocolate Chip Cookies",
-                description = "Classic chewy chocolate chip cookies"
-            )
-        } else {
-            null
-        }
+    suspend fun getRecipe(id: UUID): Recipe? {
+        return recipeRepository.findById(id)
     }
 }

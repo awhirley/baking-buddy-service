@@ -18,10 +18,6 @@ fun Application.configureRouting() {
     }
 
     routing {
-        get("/") {
-            call.respondText("Hello, World!")
-        }
-
         healthRoutes()
         recipeRoutes(recipeService)
     }
