@@ -28,6 +28,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:1.0.0")
     implementation("org.postgresql:postgresql:42.7.7")
 
+    implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
+
     implementation(libs.logback.classic)
 
     testImplementation(kotlin("test"))
