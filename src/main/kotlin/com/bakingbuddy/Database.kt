@@ -5,7 +5,7 @@ import io.ktor.server.application.*
 import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.configureDatabase() {
-    val dotenv = Dotenv.load()
+    val dotenv = Dotenv.configure().ignoreIfMissing().load()
     val environment: String? = System.getenv("APP_ENV") ?: dotenv.get("APP_ENV")
     
     if (environment == null) {
