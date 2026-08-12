@@ -1,7 +1,7 @@
-package com.bakingbuddy
+package com.bakingbuddy.plugins
 
 import io.github.cdimascio.dotenv.Dotenv
-import io.ktor.server.application.*
+import io.ktor.server.application.Application
 import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.configureDatabase() {

@@ -9,7 +9,7 @@ object Recipes : Table("recipes") {
     val name = text("name")
     val description = text("description")
     val created_at = timestamp("created_at")
-    val recipe_source = text("source")
+    val recipe_source = text("recipe_source")
     val tags = array<String>("tags", TextColumnType())
     val tools = array<String>("tools", TextColumnType())
 

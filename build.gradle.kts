@@ -24,6 +24,7 @@ dependencies {
 
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
+    implementation("io.ktor:ktor-server-status-pages")
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 
     implementation("org.jetbrains.exposed:exposed-core:1.3.1")

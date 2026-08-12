@@ -3,5 +3,7 @@ ktor:
     port: ${PORT:8080}
   application:
     modules:
-      - com.bakingbuddy.DatabaseKt.configureDatabase
-      - com.bakingbuddy.RoutingKt.configureRouting
+      - com.bakingbuddy.plugins.DatabaseKt.configureDatabase
+      - com.bakingbuddy.plugins.RoutingKt.configureRouting
+      - com.bakingbuddy.plugins.SerializationKt.configureSerialization
+      - com.bakingbuddy.plugins.StatusPageKt.configureStatusPages

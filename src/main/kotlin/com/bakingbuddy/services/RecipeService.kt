@@ -2,13 +2,14 @@ package com.bakingbuddy.services
 
 import com.bakingbuddy.models.CreateRecipePayload
 import com.bakingbuddy.models.Recipe
+import com.bakingbuddy.models.RecipeDetail
 import com.bakingbuddy.repositories.RecipeRepositoryImpl
-import java.util.UUID
+import kotlin.uuid.Uuid
 
 class RecipeService {
     private val recipeRepository = RecipeRepositoryImpl()
 
-    suspend fun getRecipe(id: UUID): Recipe? {
+    suspend fun getRecipe(id: Uuid): RecipeDetail? {
         return recipeRepository.findById(id)
     }
     
@@ -16,7 +17,7 @@ class RecipeService {
         return recipeRepository.listAll()
     }
     
-    suspend fun createRecipe(request: CreateRecipePayload): Recipe {
+    suspend fun createRecipe(request: CreateRecipePayload): RecipeDetail {
         return recipeRepository.create(request)
     }
 }

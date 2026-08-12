@@ -16,6 +16,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.time.Instant
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
 
@@ -135,17 +136,19 @@ class RecipeRepositoryImpl : RecipeRepository {
     }
     
     override suspend fun create(request: CreateRecipePayload): RecipeDetail {
+        val recipeId = Uuid.random()
+        val createdAt = Instant.now()
+        
         return transaction {
             val recipeStatement = Recipes.insert {
+                it[Recipes.id] = recipeId
                 it[Recipes.name] = request.name
                 it[Recipes.description] = request.description
                 it[Recipes.recipe_source] = request.recipeSource.orEmpty()
                 it[Recipes.tags] = request.tags.orEmpty()
                 it[Recipes.tools] = request.tools.orEmpty()
+                it[Recipes.created_at] = createdAt
             }
-
-            val recipeId = recipeStatement[Recipes.id]
-            val createdAt = recipeStatement[Recipes.created_at]
 
             val ingredients = createIngredients(recipeId, request.ingredients)
             val instructions = createInstructions(recipeId, request.instructions)
@@ -166,17 +169,22 @@ class RecipeRepositoryImpl : RecipeRepository {
 
     fun createIngredients(recipeId: Uuid, request: List<CreateIngredientPayload>): List<Ingredient> {
         return request.map { ingredient ->
+            val ingredientId = Uuid.random()
+            val createdAt = Instant.now()
+            
             val ingredientStatement = Ingredients.insert {
+                it[Ingredients.id] = ingredientId
                 it[Ingredients.recipe_id] = recipeId
                 it[Ingredients.best_version] = 1
+                it[Ingredients.created_at] = createdAt
             }
-            val ingredientId = ingredientStatement[Ingredients.id]
 
             IngredientDelta.insert {
                 it[IngredientDelta.ingredient_id] = ingredientId
                 it[IngredientDelta.version] = 1
                 it[IngredientDelta.amount] = ingredient.amount
                 it[IngredientDelta.name] = ingredient.name
+                it[IngredientDelta.created_at] = createdAt
             }
 
             Ingredient(
@@ -193,16 +201,21 @@ class RecipeRepositoryImpl : RecipeRepository {
 
     fun createInstructions(recipeId: Uuid, request: List<String>): List<Instruction> {
         return request.map { description ->
+            val instructionId = Uuid.random()
+            val createdAt = Instant.now()
+            
             val instructionStatement = Instructions.insert {
+                it[Instructions.id] = instructionId
                 it[Instructions.recipe_id] = recipeId
                 it[Instructions.best_version] = 1
+                it[Instructions.created_at] = createdAt
             }
-            val instructionId = instructionStatement[Instructions.id]
 
             InstructionDelta.insert {
                 it[InstructionDelta.instruction_id] = instructionId
                 it[InstructionDelta.version] = 1
                 it[InstructionDelta.description] = description
+                it[InstructionDelta.created_at] = createdAt
             }
 
             Instruction(
