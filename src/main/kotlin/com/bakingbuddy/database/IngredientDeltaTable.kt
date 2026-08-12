@@ -11,7 +11,7 @@ object IngredientDelta : Table("ingredient_delta") {
     val amount = text("amount")
     val name = text("name")
     val notes = text("notes")
-    val createdAt = timestamp("created_at")
+    val created_at = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)
 }

@@ -10,7 +10,7 @@ object InstructionDelta : Table("instruction_delta") {
     val version = integer("version")
     val description = text("description")
     val notes = text("notes")
-    val createdAt = timestamp("created_at")
+    val created_at = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)
 }

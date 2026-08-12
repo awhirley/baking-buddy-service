@@ -6,12 +6,14 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable
-data class Ingredient(
+data class RecipeDetail(
     val id: Uuid,
-    val recipeId: Uuid,
-    val bestVersion: Int,
-    val notes: String?,
+    val name: String,
+    val description: String?,
     @Serializable(with = InstantSerializer::class) val createdAt: Instant,
-    val amount: String,
-    val name: String
+    val recipeSource: String?,
+    val tags: List<String>?,
+    val tools: List<String>?,
+    val ingredients: List<Ingredient>,
+    val instructions: List<Instruction>,
 )

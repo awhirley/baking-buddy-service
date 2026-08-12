@@ -8,7 +8,7 @@ object Ingredients : Table("ingredients") {
     val id = uuid("id")
     val recipe_id = uuid("recipe_id")
     val best_version = integer("best_version")
-    val createdAt = timestamp("created_at")
+    val created_at = timestamp("created_at")
     val notes = text("notes")
 
     override val primaryKey = PrimaryKey(id)

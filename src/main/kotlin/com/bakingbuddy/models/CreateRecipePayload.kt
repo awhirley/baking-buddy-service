@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateIngredientPayload(
-    val amount: Double,
+    val amount: String,
     val name: String,
 )
 

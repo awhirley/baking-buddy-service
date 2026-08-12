@@ -12,4 +12,5 @@ data class Instruction(
     val bestVersion: Int,
     val notes: String?,
     @Serializable(with = InstantSerializer::class) val createdAt: Instant,
+    val description: String,
 )
