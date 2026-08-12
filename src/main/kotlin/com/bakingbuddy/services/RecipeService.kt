@@ -1,6 +1,6 @@
 package com.bakingbuddy.services
 
-import com.bakingbuddy.models.CreateRecipeRequest
+import com.bakingbuddy.models.CreateRecipePayload
 import com.bakingbuddy.models.Recipe
 import com.bakingbuddy.repositories.RecipeRepositoryImpl
 import java.util.UUID
@@ -16,7 +16,7 @@ class RecipeService {
         return recipeRepository.listAll()
     }
     
-    suspend fun createRecipe(request: CreateRecipeRequest): Recipe {
+    suspend fun createRecipe(request: CreateRecipePayload): Recipe {
         return recipeRepository.create(request)
     }
 }

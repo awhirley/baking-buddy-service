@@ -1,17 +1,20 @@
 package com.bakingbuddy.models
 
-import com.bakingbuddy.serializers.InstantSerializer
 import kotlinx.serialization.Serializable
-import java.time.Instant
-import kotlin.uuid.Uuid
 
 @Serializable
-data class Recipe(
-    val id: Uuid,
+data class CreateIngredientPayload(
+    val amount: Double,
+    val name: String,
+)
+
+@Serializable
+data class CreateRecipePayload(
     val name: String,
     val description: String,
-    @Serializable(with = InstantSerializer::class) val createdAt: Instant,
     val recipeSource: String?,
     val tags: List<String>?,
     val tools: List<String>?,
+    val ingredients: List<CreateIngredientPayload>,
+    val instructions: List<String>,
 )

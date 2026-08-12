@@ -4,14 +4,14 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.TextColumnType
 import org.jetbrains.exposed.v1.javatime.timestamp
 
-object Recipes : Table("recipes") {
+object IngredientDelta : Table("ingredient_delta") {
     val id = uuid("id")
+    val ingredient_id = uuid("ingredient_id")
+    val version = integer("version")
+    val amount = text("amount")
     val name = text("name")
-    val description = text("description")
-    val created_at = timestamp("created_at")
-    val recipe_source = text("source")
-    val tags = array<String>("tags", TextColumnType())
-    val tools = array<String>("tools", TextColumnType())
+    val notes = text("notes")
+    val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)
 }

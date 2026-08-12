@@ -1,7 +1,7 @@
 package com.bakingbuddy.repositories
 
 import com.bakingbuddy.database.Recipes
-import com.bakingbuddy.models.CreateRecipeRequest
+import com.bakingbuddy.models.CreateRecipePayload
 import com.bakingbuddy.models.Recipe
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -19,10 +19,13 @@ class RecipeRepositoryImpl : RecipeRepository {
                 .where { Recipes.id eq id.toKotlinUuid() }
                 .map { row ->
                     Recipe(
-                        id = row[Recipes.id].toString(),
+                        id = row[Recipes.id],
                         name = row[Recipes.name],
                         description = row[Recipes.description],
-                        createdAt = null,
+                        recipeSource = row[Recipes.recipe_source],
+                        tags = row[Recipes.tags],
+                        tools = row[Recipes.tools],
+                        createdAt = row[Recipes.created_at],
                     )
                 }
                 .singleOrNull()
@@ -35,30 +38,39 @@ class RecipeRepositoryImpl : RecipeRepository {
                 .selectAll()
                 .map { row ->
                     Recipe(
-                        id = row[Recipes.id].toString(),
+                        id = row[Recipes.id],
                         name = row[Recipes.name],
                         description = row[Recipes.description],
-                        createdAt = null,
+                        recipeSource = row[Recipes.recipe_source],
+                        tags = row[Recipes.tags],
+                        tools = row[Recipes.tools],
+                        createdAt = row[Recipes.created_at],
                     )
                 }
         }
     }
     
-    override suspend fun create(request: CreateRecipeRequest): Recipe {
-        val id = UUID.randomUUID()
-
+    override suspend fun create(request: CreateRecipePayload): Recipe {
         return transaction {
-            Recipes.insert {
-                it[Recipes.id] = id.toKotlinUuid()
+            val statement = Recipes.insert {
                 it[Recipes.name] = request.name
                 it[Recipes.description] = request.description
+                it[Recipes.recipe_source] = request.recipeSource.orEmpty()
+                it[Recipes.tags] = request.tags.orEmpty()
+                it[Recipes.tools] = request.tools.orEmpty()
             }
+            
+            // TODO, we need a lot more here, creating rows in other tables
+            // and we need to update both Recipe model and CreateRecipePayload to include those other tables
 
             Recipe(
-                id = id.toString(),
+                id = statement[Recipes.id],
                 name = request.name,
                 description = request.description,
-                createdAt = null
+                recipeSource = request.recipeSource,
+                tags = request.tags,
+                tools = request.tools,
+                createdAt = statement[Recipes.created_at],
             )
         }
     }
