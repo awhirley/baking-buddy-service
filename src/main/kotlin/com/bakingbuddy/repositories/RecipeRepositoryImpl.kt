@@ -7,18 +7,23 @@ import com.bakingbuddy.database.Instructions
 import com.bakingbuddy.database.Recipes
 import com.bakingbuddy.models.CreateIngredientPayload
 import com.bakingbuddy.models.CreateRecipePayload
+import com.bakingbuddy.models.EditIngredientPayload
+import com.bakingbuddy.models.EditInstructionPayload
+import com.bakingbuddy.models.EditRecipePayload
 import com.bakingbuddy.models.Ingredient
 import com.bakingbuddy.models.Instruction
 import com.bakingbuddy.models.Recipe
 import com.bakingbuddy.models.RecipeDetail
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
-import kotlin.uuid.toKotlinUuid
 
 class RecipeRepositoryImpl : RecipeRepository {
 
@@ -225,6 +230,123 @@ class RecipeRepositoryImpl : RecipeRepository {
                 notes = null,
                 createdAt = instructionStatement[Instructions.created_at],
                 description = description,
+            )
+        }
+    }
+
+    override suspend fun editRecipe(id: Uuid, request: EditRecipePayload): RecipeDetail {
+        return transaction {
+            val existing = Recipes
+                .selectAll()
+                .where { Recipes.id eq id }
+                .singleOrNull() ?: throw NoSuchElementException("Recipe ${Recipes.id} not found")
+
+            // Only touches Recipes table columns — ingredients/instructions are untouched here
+            Recipes.update({ Recipes.id eq id }) {
+                request.name?.let { name -> it[Recipes.name] = name }
+                request.description?.let { description -> it[Recipes.description] = description }
+                request.recipeSource?.let { source -> it[Recipes.recipe_source] = source }
+                request.tags?.let { tags -> it[Recipes.tags] = tags }
+                request.tools?.let { tools -> it[Recipes.tools] = tools }
+            }
+
+            val updatedRow = Recipes
+                .selectAll()
+                .where { Recipes.id eq id }
+                .single()
+
+            RecipeDetail(
+                id = updatedRow[Recipes.id],
+                name = updatedRow[Recipes.name],
+                description = updatedRow[Recipes.description],
+                createdAt = updatedRow[Recipes.created_at],
+                recipeSource = updatedRow[Recipes.recipe_source],
+                tags = updatedRow[Recipes.tags],
+                tools = updatedRow[Recipes.tools],
+                ingredients = getIngredientsForRecipe(id),
+                instructions = getInstructionsForRecipe(id),
+            )
+        }
+    }
+
+    override suspend fun editIngredient(ingredientId: Uuid, request: EditIngredientPayload): Ingredient {
+        return transaction {
+            val ingredientRow = Ingredients
+                .selectAll()
+                .where { Ingredients.id eq ingredientId }
+                .singleOrNull() ?: throw NoSuchElementException("Ingredient $ingredientId not found")
+
+            val maxVersionExpr = IngredientDelta.version.max()
+            val highestVersion = IngredientDelta
+                .select(maxVersionExpr)
+                .where { IngredientDelta.ingredient_id eq ingredientId }
+                .single()[maxVersionExpr] ?: 0
+
+            val newVersion = highestVersion + 1
+            val createdAt = Instant.now()
+
+            IngredientDelta.insert {
+                it[IngredientDelta.ingredient_id] = ingredientId
+                it[IngredientDelta.version] = newVersion
+                it[IngredientDelta.amount] = request.amount
+                it[IngredientDelta.name] = request.name
+                it[IngredientDelta.created_at] = createdAt
+            }
+
+            if (request.setAsBestVersion ?: false) {
+                Ingredients.update({ Ingredients.id eq ingredientId }) {
+                    it[Ingredients.best_version] = newVersion
+                }
+            }
+
+            Ingredient(
+                id = ingredientId,
+                recipeId = ingredientRow[Ingredients.recipe_id],
+                bestVersion = if (request.setAsBestVersion ?: false) newVersion else ingredientRow[Ingredients.best_version],
+                notes = ingredientRow[Ingredients.notes],
+                createdAt = ingredientRow[Ingredients.created_at],
+                amount = request.amount,
+                name = request.name,
+            )
+        }
+    }
+
+    override suspend fun editInstruction(instructionId: Uuid, request: EditInstructionPayload): Instruction {
+        return transaction {
+            val instructionRow = Instructions
+                .selectAll()
+                .where { Instructions.id eq instructionId }
+                .singleOrNull() ?: throw NoSuchElementException("Instruction $instructionId not found")
+
+            val maxVersionExpr = InstructionDelta.version.max()
+            val highestVersion = InstructionDelta
+                .select(maxVersionExpr)
+                .where { InstructionDelta.instruction_id eq instructionId }
+                .single()[maxVersionExpr] ?: 0
+
+            val newVersion = highestVersion + 1
+            val createdAt = Instant.now()
+
+            InstructionDelta.insert {
+                it[InstructionDelta.instruction_id] = instructionId
+                it[InstructionDelta.version] = newVersion
+                it[InstructionDelta.description] = description
+                it[InstructionDelta.created_at] = createdAt
+            }
+
+            if (request.setAsBestVersion ?: false) {
+                Instructions.update({ Instructions.id eq instructionId }) {
+                    it[Instructions.best_version] = newVersion
+                }
+            }
+
+            Instruction(
+                id = instructionId,
+                recipeId = instructionRow[Instructions.recipe_id],
+                bestVersion = if (request.setAsBestVersion ?: false) newVersion else instructionRow[Instructions.best_version],
+                notes = instructionRow[Instructions.notes],
+                createdAt = instructionRow[Instructions.created_at],
+                description = request.description,
             )
         }
     }

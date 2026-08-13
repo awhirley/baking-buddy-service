@@ -7,6 +7,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import kotlin.uuid.Uuid
 
@@ -46,5 +47,51 @@ fun Route.recipeRoutes(
     post(path = "/api/recipes") {
         val recipe = recipeService.createRecipe(call.receive())
         call.respond(HttpStatusCode.Created, recipe)
+    }
+    
+    patch(path = "/api/recipes/{id}") {
+        val id = call.parameters["id"]
+
+        if (id == null) {
+            call.respondText(
+                "Invalid recipe ID",
+                status = io.ktor.http.HttpStatusCode.BadRequest
+            )
+            return@patch
+        }
+
+        val recipe = recipeService.editRecipe(Uuid.parse(id), call.receive())
+        
+        call.respond(recipe)
+    }
+
+    patch(path = "/api/ingredients/{id}") {
+        val id = call.parameters["id"]
+
+        if (id == null) {
+            call.respondText(
+                "Invalid ingredient ID",
+                status = io.ktor.http.HttpStatusCode.BadRequest
+            )
+            return@patch
+        }
+
+        val ingredient = recipeService.editIngredient(Uuid.parse(id), call.receive())
+        call.respond(ingredient)
+    }
+
+    patch(path = "/api/instructions/{id}") {
+        val id = call.parameters["id"]
+
+        if (id == null) {
+            call.respondText(
+                "Invalid instruction ID",
+                status = io.ktor.http.HttpStatusCode.BadRequest
+            )
+            return@patch
+        }
+
+        val instruction = recipeService.editInstruction(Uuid.parse(id), call.receive())
+        call.respond(instruction)
     }
 }
