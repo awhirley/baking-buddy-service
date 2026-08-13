@@ -38,4 +38,16 @@ class RecipeService {
     suspend fun editInstruction(instructionId: Uuid, request: EditInstructionPayload): Instruction {
         return recipeRepository.editInstruction(instructionId, request)
     }
+    
+    suspend fun updateRecipeNotes(recipeId: Uuid, notes: String?) {
+        return recipeRepository.updateRecipeNotes(recipeId, notes)
+    }
+    
+    suspend fun updateIngredientNotes(ingredientId: Uuid, notes: String?) {
+        return recipeRepository.updateIngredientNotes(ingredientId, notes)
+    }
+    
+    suspend fun updateInstructionNotes(instructionId: Uuid, notes: String?) {
+        return recipeRepository.updateInstructionNotes(instructionId, notes)
+    }
 }

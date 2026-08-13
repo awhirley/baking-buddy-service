@@ -47,6 +47,7 @@ class RecipeRepositoryImpl : RecipeRepository {
                 tools = recipeRow[Recipes.tools],
                 ingredients = ingredients,
                 instructions = instructions,
+                notes = recipeRow[Recipes.notes],
             )
         }
     }
@@ -168,6 +169,7 @@ class RecipeRepositoryImpl : RecipeRepository {
                 createdAt = createdAt,
                 ingredients = ingredients,
                 instructions = instructions,
+                notes = null
             )
         }
     }
@@ -263,6 +265,7 @@ class RecipeRepositoryImpl : RecipeRepository {
                 recipeSource = updatedRow[Recipes.recipe_source],
                 tags = updatedRow[Recipes.tags],
                 tools = updatedRow[Recipes.tools],
+                notes = updatedRow[Recipes.notes],
                 ingredients = getIngredientsForRecipe(id),
                 instructions = getInstructionsForRecipe(id),
             )
@@ -348,6 +351,45 @@ class RecipeRepositoryImpl : RecipeRepository {
                 createdAt = instructionRow[Instructions.created_at],
                 description = request.description,
             )
+        }
+    }
+
+    override suspend fun updateRecipeNotes(recipeId: Uuid, notes: String?) {
+        return transaction {
+            Recipes
+                .selectAll()
+                .where { Recipes.id eq recipeId }
+                .singleOrNull() ?: throw NoSuchElementException("Recipe $recipeId not found")
+
+            val updatedRows = Recipes.update({ Recipes.id eq recipeId }) {
+                it[Recipes.notes] = notes
+            }
+        }
+    }
+
+    override suspend fun updateIngredientNotes(ingredientId: Uuid, notes: String?) {
+        return transaction {
+            Ingredients
+                .selectAll()
+                .where { Ingredients.id eq ingredientId }
+                .singleOrNull() ?: throw NoSuchElementException("Ingredient $ingredientId not found")
+                
+            val updatedRows = Ingredients.update({ Ingredients.id eq ingredientId }) {
+                it[Ingredients.notes] = notes as String
+            }
+        }
+    }
+
+    override suspend fun updateInstructionNotes(instructionId: Uuid, notes: String?) {
+        return transaction {
+            Instructions
+                .selectAll()
+                .where { Instructions.id eq instructionId }
+                .singleOrNull() ?: throw NoSuchElementException("Recipe $instructionId not found")
+                
+            val updatedRows = Instructions.update({ Instructions.id eq instructionId }) {
+                it[Instructions.notes] = notes as String
+            }
         }
     }
 }

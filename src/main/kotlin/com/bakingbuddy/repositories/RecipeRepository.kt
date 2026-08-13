@@ -24,4 +24,10 @@ interface RecipeRepository {
     suspend fun editIngredient(ingredientId: Uuid, request: EditIngredientPayload): Ingredient
         
     suspend fun editInstruction(instructionId: Uuid, request: EditInstructionPayload): Instruction
+    
+    suspend fun updateRecipeNotes(recipeId: Uuid, notes: String?)
+    
+    suspend fun updateIngredientNotes(ingredientId: Uuid, notes: String?)
+    
+    suspend fun updateInstructionNotes(instructionId: Uuid, notes: String?)
 }

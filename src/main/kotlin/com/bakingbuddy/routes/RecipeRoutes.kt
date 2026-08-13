@@ -94,4 +94,50 @@ fun Route.recipeRoutes(
         val instruction = recipeService.editInstruction(Uuid.parse(id), call.receive())
         call.respond(instruction)
     }
+
+    patch(path = "/api/recipes/notes/{id}") {
+        val id = call.parameters["id"]
+
+        if (id == null) {
+            call.respondText(
+                "Invalid recipe ID",
+                status = io.ktor.http.HttpStatusCode.BadRequest
+            )
+            return@patch
+        }
+
+        val recipe = recipeService.updateRecipeNotes(Uuid.parse(id), call.receive())
+        call.respond(recipe)
+    }
+
+    patch(path = "/api/ingredients/notes/{id}") {
+        val id = call.parameters["id"]
+
+        if (id == null) {
+            call.respondText(
+                "Invalid ingredient ID",
+                status = io.ktor.http.HttpStatusCode.BadRequest
+            )
+            return@patch
+        }
+
+        val ingredient = recipeService.updateIngredientNotes(Uuid.parse(id), call.receive())
+        call.respond(ingredient)
+    }
+
+    patch(path = "/api/instructions/notes/{id}") {
+        val id = call.parameters["id"]
+
+        if (id == null) {
+            call.respondText(
+                "Invalid instruction ID",
+                status = io.ktor.http.HttpStatusCode.BadRequest
+            )
+            return@patch
+        }
+
+        val instruction = recipeService.updateInstructionNotes(Uuid.parse(id), call.receive())
+        call.respond(instruction)
+    }
+
 }
