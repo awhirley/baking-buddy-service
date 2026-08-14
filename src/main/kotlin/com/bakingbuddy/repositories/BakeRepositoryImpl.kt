@@ -9,6 +9,9 @@ import com.bakingbuddy.database.InstructionDelta
 import com.bakingbuddy.database.Instructions
 import com.bakingbuddy.database.Recipes
 import com.bakingbuddy.models.bakes.Bake
+import com.bakingbuddy.models.bakes.BakeDetail
+import com.bakingbuddy.models.bakes.BakeIngredientPayload
+import com.bakingbuddy.models.bakes.BakeInstructionPayload
 import com.bakingbuddy.models.bakes.CreateBakePayload
 import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
 import com.bakingbuddy.models.ingredients.IngredientHistory
@@ -17,6 +20,7 @@ import com.bakingbuddy.models.instructions.InstructionHistory
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -103,17 +107,117 @@ class BakeRepositoryImpl : BakeRepository {
             }
         }
 
+        val bakeDetail = BakeDetail(
+          id = bakeId,
+          recipeId = payload.recipeId,
+          date = payload.date,
+          results = payload.results,
+          elevation = payload.elevation,
+          notes = payload.notes,
+          createdAt = createdAt
+        )
         Bake(
             id = bakeId,
             recipeId = payload.recipeId,
-            date = payload.date,
-            results = payload.results,
-            elevation = payload.elevation,
-            notes = payload.notes,
-            createdAt = createdAt,
+            bakeDetail,
             ingredientVersions = payload.ingredientVersions,
             instructionVersions = payload.instructionVersions,
         )
     }
 }
+
+	// Load all bakes with ingredients and instructions
+	override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
+    return transaction {
+        val bakeRows = Bakes
+            .selectAll()
+            .where { Bakes.recipe_id eq recipeId }
+            .toList()
+
+        if (bakeRows.isEmpty()) return@transaction emptyList()
+
+        val bakeIds = bakeRows.map { it[Bakes.id] }
+
+        val ingredientVersionsByBake = BakeIngredients
+            .join(
+                IngredientDelta,
+                JoinType.INNER,
+                onColumn = BakeIngredients.ingredient_delta_id,
+                otherColumn = IngredientDelta.id,
+            )
+            .selectAll()
+            .where { BakeIngredients.bake_id inList bakeIds }
+            .map { row ->
+                row[BakeIngredients.bake_id] to BakeIngredientPayload(
+                    ingredientId = row[IngredientDelta.ingredient_id],
+                    version = row[IngredientDelta.version],
+                )
+            }
+            .groupBy({ it.first }, { it.second })
+
+        val instructionVersionsByBake = BakeInstructions
+            .join(
+                InstructionDelta,
+                JoinType.INNER,
+                onColumn = BakeInstructions.instruction_delta_id,
+                otherColumn = InstructionDelta.id,
+            )
+            .selectAll()
+            .where { BakeInstructions.bake_id inList bakeIds }
+            .map { row ->
+                row[BakeInstructions.bake_id] to BakeInstructionPayload(
+                    instructionId = row[InstructionDelta.instruction_id],
+                    version = row[InstructionDelta.version],
+                )
+            }
+            .groupBy({ it.first }, { it.second })
+
+        bakeRows.map { row ->
+            val bakeId = row[Bakes.id]
+            val bakeDetail = BakeDetail(
+            	id = bakeId,
+            	recipeId = row[Bakes.recipe_id],
+							date = row[Bakes.date],
+							results = row[Bakes.results],
+							elevation = row[Bakes.elevation],
+							notes = row[Bakes.notes],
+							createdAt = row[Bakes.created_at],
+            )
+            Bake(
+							id = bakeId,
+							recipeId = row[Bakes.recipe_id],
+							bakeDetail = bakeDetail,
+							ingredientVersions = ingredientVersionsByBake[bakeId] ?: emptyList(),
+              instructionVersions = instructionVersionsByBake[bakeId] ?: emptyList(),
+            )
+        }
+    }
+  }
+
+  // Load all details of all bakes
+	override suspend fun listBakes(recipeId: Uuid): List<BakeDetail> {
+    return transaction {
+        val bakeRows = Bakes
+            .selectAll()
+            .where { Bakes.recipe_id eq recipeId }
+            .toList()
+
+        if (bakeRows.isEmpty()) return@transaction emptyList()
+
+        val bakeIds = bakeRows.map { it[Bakes.id] }
+
+        bakeRows.map { row ->
+            val bakeId = row[Bakes.id]
+            BakeDetail(
+            	id = bakeId,
+            	recipeId = row[Bakes.recipe_id],
+							date = row[Bakes.date],
+							results = row[Bakes.results],
+							elevation = row[Bakes.elevation],
+							notes = row[Bakes.notes],
+							createdAt = row[Bakes.created_at],
+            )
+        }
+    }
+  }
 }
