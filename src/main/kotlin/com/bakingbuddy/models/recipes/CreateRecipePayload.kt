@@ -1,12 +1,7 @@
-package com.bakingbuddy.models
+package com.bakingbuddy.models.recipes
 
+import com.bakingbuddy.models.ingredients.CreateIngredientPayload
 import kotlinx.serialization.Serializable
-
-@Serializable
-data class CreateIngredientPayload(
-    val amount: String,
-    val name: String,
-)
 
 @Serializable
 data class CreateRecipePayload(

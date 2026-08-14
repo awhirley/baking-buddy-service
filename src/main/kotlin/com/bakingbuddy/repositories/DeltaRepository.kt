@@ -1,9 +1,7 @@
 package com.bakingbuddy.repositories
 
-import com.bakingbuddy.models.IngredientDeltaEntry
-import com.bakingbuddy.models.IngredientHistory
-import com.bakingbuddy.models.InstructionDeltaEntry
-import com.bakingbuddy.models.InstructionHistory
+import com.bakingbuddy.models.ingredients.IngredientHistory
+import com.bakingbuddy.models.instructions.InstructionHistory
 import kotlin.uuid.Uuid
 
 interface DeltaRepository {

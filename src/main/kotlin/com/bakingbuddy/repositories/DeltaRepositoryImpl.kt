@@ -4,10 +4,10 @@ import com.bakingbuddy.database.IngredientDelta
 import com.bakingbuddy.database.Ingredients
 import com.bakingbuddy.database.InstructionDelta
 import com.bakingbuddy.database.Instructions
-import com.bakingbuddy.models.IngredientDeltaEntry
-import com.bakingbuddy.models.IngredientHistory
-import com.bakingbuddy.models.InstructionDeltaEntry
-import com.bakingbuddy.models.InstructionHistory
+import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
+import com.bakingbuddy.models.ingredients.IngredientHistory
+import com.bakingbuddy.models.instructions.InstructionDeltaEntry
+import com.bakingbuddy.models.instructions.InstructionHistory
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
@@ -33,12 +33,12 @@ class DeltaRepositoryImpl : DeltaRepository {
           .orderBy(IngredientDelta.version)
           .map { row ->
               IngredientDeltaEntry(
-                id = row[IngredientDelta.id],
-                ingredientId = row[IngredientDelta.ingredient_id],
-                version = row[IngredientDelta.version],
-                name = row[IngredientDelta.name],
-                amount = row[IngredientDelta.amount],
-                createdAt = row[IngredientDelta.created_at],
+                  id = row[IngredientDelta.id],
+                  ingredientId = row[IngredientDelta.ingredient_id],
+                  version = row[IngredientDelta.version],
+                  name = row[IngredientDelta.name],
+                  amount = row[IngredientDelta.amount],
+                  createdAt = row[IngredientDelta.created_at],
               )
           }
 
@@ -64,11 +64,11 @@ class DeltaRepositoryImpl : DeltaRepository {
             .orderBy(InstructionDelta.version)
             .map { row ->
                 InstructionDeltaEntry(
-                  id = row[InstructionDelta.id],
-                  instructionId = row[InstructionDelta.instruction_id],
-                  version = row[InstructionDelta.version],
-                  description = row[InstructionDelta.description],
-                  createdAt = row[InstructionDelta.created_at],
+                    id = row[InstructionDelta.id],
+                    instructionId = row[InstructionDelta.instruction_id],
+                    version = row[InstructionDelta.version],
+                    description = row[InstructionDelta.description],
+                    createdAt = row[InstructionDelta.created_at],
                 )
             }
 

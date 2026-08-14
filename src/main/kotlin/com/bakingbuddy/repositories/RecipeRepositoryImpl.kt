@@ -1,19 +1,22 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.database.BakeIngredients
+import com.bakingbuddy.database.BakeInstructions
+import com.bakingbuddy.database.Bakes
 import com.bakingbuddy.database.IngredientDelta
 import com.bakingbuddy.database.Ingredients
 import com.bakingbuddy.database.InstructionDelta
 import com.bakingbuddy.database.Instructions
 import com.bakingbuddy.database.Recipes
-import com.bakingbuddy.models.CreateIngredientPayload
-import com.bakingbuddy.models.CreateRecipePayload
-import com.bakingbuddy.models.EditIngredientPayload
-import com.bakingbuddy.models.EditInstructionPayload
-import com.bakingbuddy.models.EditRecipePayload
-import com.bakingbuddy.models.Ingredient
-import com.bakingbuddy.models.Instruction
-import com.bakingbuddy.models.Recipe
-import com.bakingbuddy.models.RecipeDetail
+import com.bakingbuddy.models.ingredients.CreateIngredientPayload
+import com.bakingbuddy.models.recipes.CreateRecipePayload
+import com.bakingbuddy.models.ingredients.EditIngredientPayload
+import com.bakingbuddy.models.instructions.EditInstructionPayload
+import com.bakingbuddy.models.recipes.EditRecipePayload
+import com.bakingbuddy.models.ingredients.Ingredient
+import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.recipes.Recipe
+import com.bakingbuddy.models.recipes.RecipeDetail
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
@@ -411,6 +414,17 @@ class RecipeRepositoryImpl : RecipeRepository {
                 .selectAll()
                 .where { Instructions.recipe_id eq id }
                 .map { it[Instructions.id] }
+
+            val bakeIds = Bakes
+                .selectAll()
+                .where { Bakes.recipe_id eq id }
+                .map { it[Bakes.id] }
+
+            if (bakeIds.isNotEmpty()) {
+                BakeIngredients.deleteWhere { BakeIngredients.bake_id inList bakeIds }
+                BakeInstructions.deleteWhere { BakeInstructions.bake_id inList bakeIds }
+            }
+            Bakes.deleteWhere { Bakes.recipe_id eq id }
 
             if (ingredientIds.isNotEmpty()) {
                 IngredientDelta.deleteWhere { IngredientDelta.ingredient_id inList ingredientIds }

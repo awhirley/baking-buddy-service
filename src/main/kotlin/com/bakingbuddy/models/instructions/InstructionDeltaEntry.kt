@@ -1,4 +1,4 @@
-package com.bakingbuddy.models
+package com.bakingbuddy.models.instructions
 
 import com.bakingbuddy.serializers.InstantSerializer
 import kotlinx.serialization.Serializable

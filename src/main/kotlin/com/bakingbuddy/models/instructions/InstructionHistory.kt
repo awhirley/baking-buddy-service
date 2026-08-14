@@ -1,12 +1,12 @@
-package com.bakingbuddy.models
+package com.bakingbuddy.models.instructions
 
 import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
 @Serializable
-data class IngredientHistory(
+data class InstructionHistory(
     val id: Uuid,
     val recipeId: Uuid,
     val bestVersion: Int,
-    val history: List<IngredientDeltaEntry>
+    val history: List<InstructionDeltaEntry>
 )

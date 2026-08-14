@@ -1,14 +1,14 @@
 package com.bakingbuddy.repositories
 
-import com.bakingbuddy.models.CreateIngredientPayload
-import com.bakingbuddy.models.CreateRecipePayload
-import com.bakingbuddy.models.EditIngredientPayload
-import com.bakingbuddy.models.EditInstructionPayload
-import com.bakingbuddy.models.EditRecipePayload
-import com.bakingbuddy.models.Ingredient
-import com.bakingbuddy.models.Instruction
-import com.bakingbuddy.models.Recipe
-import com.bakingbuddy.models.RecipeDetail
+import com.bakingbuddy.models.ingredients.CreateIngredientPayload
+import com.bakingbuddy.models.recipes.CreateRecipePayload
+import com.bakingbuddy.models.ingredients.EditIngredientPayload
+import com.bakingbuddy.models.instructions.EditInstructionPayload
+import com.bakingbuddy.models.recipes.EditRecipePayload
+import com.bakingbuddy.models.ingredients.Ingredient
+import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.recipes.Recipe
+import com.bakingbuddy.models.recipes.RecipeDetail
 import kotlin.uuid.Uuid
 
 interface RecipeRepository {

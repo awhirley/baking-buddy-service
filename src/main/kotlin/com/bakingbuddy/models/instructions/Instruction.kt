@@ -1,4 +1,4 @@
-package com.bakingbuddy.models
+package com.bakingbuddy.models.instructions
 
 import com.bakingbuddy.serializers.InstantSerializer
 import kotlinx.serialization.Serializable
@@ -6,11 +6,11 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable
-data class Recipe(
+data class Instruction(
     val id: Uuid,
-    val name: String,
-    val description: String?,
-    val recipeSource: String?,
-    val tags: List<String>?,
+    val recipeId: Uuid,
+    val bestVersion: Int,
+    val notes: String?,
     @Serializable(with = InstantSerializer::class) val createdAt: Instant,
+    val description: String,
 )

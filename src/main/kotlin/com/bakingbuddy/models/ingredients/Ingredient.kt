@@ -1,4 +1,4 @@
-package com.bakingbuddy.models
+package com.bakingbuddy.models.ingredients
 
 import com.bakingbuddy.serializers.InstantSerializer
 import kotlinx.serialization.Serializable
@@ -6,11 +6,12 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable
-data class IngredientDeltaEntry(
+data class Ingredient(
     val id: Uuid,
-    val ingredientId: Uuid,
-    val version: Int,
-    val amount: String?,
-    val name: String?,
+    val recipeId: Uuid,
+    val bestVersion: Int,
+    val notes: String?,
     @Serializable(with = InstantSerializer::class) val createdAt: Instant,
+    val amount: String,
+    val name: String
 )
