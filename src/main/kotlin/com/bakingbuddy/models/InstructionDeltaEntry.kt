@@ -6,12 +6,10 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable
-data class IngredientDelta(
+data class InstructionDeltaEntry(
     val id: Uuid,
-    val ingredientId: Uuid,
+    val instructionId: Uuid,
     val version: Int,
-    val amount: String?,
-    val name: String?,
-    val notes: String?,
+    val description: String?,
     @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )

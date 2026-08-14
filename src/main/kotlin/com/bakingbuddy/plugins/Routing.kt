@@ -1,7 +1,9 @@
 package com.bakingbuddy.plugins
 
+import com.bakingbuddy.routes.deltaRoutes
 import com.bakingbuddy.routes.healthRoutes
 import com.bakingbuddy.routes.recipeRoutes
+import com.bakingbuddy.services.DeltaService
 import com.bakingbuddy.services.RecipeService
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -13,6 +15,7 @@ import io.ktor.server.routing.routing
 fun Application.configureRouting() {
     
     val recipeService = RecipeService()
+    val deltaService = DeltaService()
 
     install(CORS) {
         allowHost("localhost:5173")
@@ -29,5 +32,6 @@ fun Application.configureRouting() {
     routing {
         healthRoutes()
         recipeRoutes(recipeService)
+        deltaRoutes(deltaService)
     }
 }
