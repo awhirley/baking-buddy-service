@@ -16,7 +16,9 @@ import com.bakingbuddy.models.Recipe
 import com.bakingbuddy.models.RecipeDetail
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -390,6 +392,39 @@ class RecipeRepositoryImpl : RecipeRepository {
             val updatedRows = Instructions.update({ Instructions.id eq instructionId }) {
                 it[Instructions.notes] = notes as String
             }
+        }
+    }
+    
+    override suspend fun deleteRecipe(id: Uuid): Boolean {
+        return transaction {
+            val existing = Recipes
+                .selectAll()
+                .where { Recipes.id eq id }
+                .singleOrNull() ?: return@transaction false
+
+            val ingredientIds = Ingredients
+                .selectAll()
+                .where { Ingredients.recipe_id eq id }
+                .map { it[Ingredients.id] }
+
+            val instructionIds = Instructions
+                .selectAll()
+                .where { Instructions.recipe_id eq id }
+                .map { it[Instructions.id] }
+
+            if (ingredientIds.isNotEmpty()) {
+                IngredientDelta.deleteWhere { IngredientDelta.ingredient_id inList ingredientIds }
+            }
+            Ingredients.deleteWhere { Ingredients.recipe_id eq id }
+
+            if (instructionIds.isNotEmpty()) {
+                InstructionDelta.deleteWhere { InstructionDelta.instruction_id inList instructionIds }
+            }
+            Instructions.deleteWhere { Instructions.recipe_id eq id }
+
+            Recipes.deleteWhere { Recipes.id eq id }
+
+            true
         }
     }
 }

@@ -50,4 +50,8 @@ class RecipeService {
     suspend fun updateInstructionNotes(instructionId: Uuid, notes: String?) {
         return recipeRepository.updateInstructionNotes(instructionId, notes)
     }
+    
+    suspend fun deleteRecipe(id: Uuid): Boolean {
+        return recipeRepository.deleteRecipe(id)
+    }
 }
