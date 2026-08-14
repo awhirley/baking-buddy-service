@@ -13,13 +13,13 @@ import kotlin.uuid.Uuid
 
 interface RecipeRepository {
 
-    suspend fun findById(id: Uuid): RecipeDetail?
+    suspend fun findById(id: Uuid): Recipe?
         
-    suspend fun listAll(): List<Recipe>
+    suspend fun listAll(): List<RecipeDetail>
     
-    suspend fun create(request: CreateRecipePayload): RecipeDetail
+    suspend fun create(request: CreateRecipePayload): Recipe
     
-    suspend fun editRecipe(id: Uuid, request: EditRecipePayload): RecipeDetail
+    suspend fun editRecipe(id: Uuid, request: EditRecipePayload): Recipe
         
     suspend fun editIngredient(ingredientId: Uuid, request: EditIngredientPayload): Ingredient
         

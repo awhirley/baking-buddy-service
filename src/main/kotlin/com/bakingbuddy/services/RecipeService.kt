@@ -15,19 +15,19 @@ import kotlin.uuid.Uuid
 class RecipeService {
     private val recipeRepository = RecipeRepositoryImpl()
 
-    suspend fun getRecipe(id: Uuid): RecipeDetail? {
+    suspend fun getRecipe(id: Uuid): Recipe? {
         return recipeRepository.findById(id)
     }
     
-    suspend fun listRecipes(): List<Recipe> {
+    suspend fun listRecipes(): List<RecipeDetail> {
         return recipeRepository.listAll()
     }
     
-    suspend fun createRecipe(request: CreateRecipePayload): RecipeDetail {
+    suspend fun createRecipe(request: CreateRecipePayload): Recipe {
         return recipeRepository.create(request)
     }
     
-    suspend fun editRecipe(recipeId: Uuid, request: EditRecipePayload): RecipeDetail {
+    suspend fun editRecipe(recipeId: Uuid, request: EditRecipePayload): Recipe {
         return recipeRepository.editRecipe(recipeId, request)
     }
     

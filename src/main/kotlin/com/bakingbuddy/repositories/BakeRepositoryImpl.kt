@@ -119,7 +119,7 @@ class BakeRepositoryImpl : BakeRepository {
         Bake(
             id = bakeId,
             recipeId = payload.recipeId,
-            bakeDetail,
+            details = bakeDetail,
             ingredientVersions = payload.ingredientVersions,
             instructionVersions = payload.instructionVersions,
         )
@@ -177,17 +177,17 @@ class BakeRepositoryImpl : BakeRepository {
             val bakeDetail = BakeDetail(
             	id = bakeId,
             	recipeId = row[Bakes.recipe_id],
-							date = row[Bakes.date],
-							results = row[Bakes.results],
-							elevation = row[Bakes.elevation],
-							notes = row[Bakes.notes],
-							createdAt = row[Bakes.created_at],
+                date = row[Bakes.date],
+                results = row[Bakes.results],
+                elevation = row[Bakes.elevation],
+                notes = row[Bakes.notes],
+                createdAt = row[Bakes.created_at],
             )
             Bake(
-							id = bakeId,
-							recipeId = row[Bakes.recipe_id],
-							bakeDetail = bakeDetail,
-							ingredientVersions = ingredientVersionsByBake[bakeId] ?: emptyList(),
+                id = bakeId,
+                recipeId = row[Bakes.recipe_id],
+                details = bakeDetail,
+                ingredientVersions = ingredientVersionsByBake[bakeId] ?: emptyList(),
               instructionVersions = instructionVersionsByBake[bakeId] ?: emptyList(),
             )
         }

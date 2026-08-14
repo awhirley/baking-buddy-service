@@ -9,7 +9,7 @@ import kotlin.uuid.Uuid
 data class Bake(
     val id: Uuid,
     val recipeId: Uuid,
-    val bakeDetail: BakeDetail,
+    val details: BakeDetail,
     val ingredientVersions: List<BakeIngredientPayload>,
     val instructionVersions: List<BakeInstructionPayload>,
 )

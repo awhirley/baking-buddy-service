@@ -32,7 +32,7 @@ import kotlin.uuid.Uuid
 
 class RecipeRepositoryImpl : RecipeRepository {
 
-    override suspend fun findById(id: Uuid): RecipeDetail? {
+    override suspend fun findById(id: Uuid): Recipe? {
         return transaction {
             val recipeRow = Recipes
                 .selectAll()
@@ -41,8 +41,8 @@ class RecipeRepositoryImpl : RecipeRepository {
 
             val ingredients = getIngredientsForRecipe(id)
             val instructions = getInstructionsForRecipe(id)
-
-            RecipeDetail(
+            
+            val details = RecipeDetail(
                 id = recipeRow[Recipes.id],
                 name = recipeRow[Recipes.name],
                 description = recipeRow[Recipes.description],
@@ -50,9 +50,14 @@ class RecipeRepositoryImpl : RecipeRepository {
                 recipeSource = recipeRow[Recipes.recipe_source],
                 tags = recipeRow[Recipes.tags],
                 tools = recipeRow[Recipes.tools],
+                notes = recipeRow[Recipes.notes],
+            )
+
+            Recipe(
+                id = recipeRow[Recipes.id],
+                details = details,
                 ingredients = ingredients,
                 instructions = instructions,
-                notes = recipeRow[Recipes.notes],
             )
         }
     }
@@ -129,24 +134,26 @@ class RecipeRepositoryImpl : RecipeRepository {
         return instructions
     }
 
-    override suspend fun listAll(): List<Recipe> {
+    override suspend fun listAll(): List<RecipeDetail> {
         return transaction {
             Recipes
                 .selectAll()
                 .map { row ->
-                    Recipe(
+                    RecipeDetail(
                         id = row[Recipes.id],
                         name = row[Recipes.name],
                         description = row[Recipes.description],
                         recipeSource = row[Recipes.recipe_source],
                         tags = row[Recipes.tags],
                         createdAt = row[Recipes.created_at],
+                        tools = row[Recipes.tools],
+                        notes = row[Recipes.notes],
                     )
                 }
         }
     }
     
-    override suspend fun create(request: CreateRecipePayload): RecipeDetail {
+    override suspend fun create(request: CreateRecipePayload): Recipe {
         val recipeId = Uuid.random()
         val createdAt = Instant.now()
         
@@ -163,8 +170,8 @@ class RecipeRepositoryImpl : RecipeRepository {
 
             val ingredients = createIngredients(recipeId, request.ingredients)
             val instructions = createInstructions(recipeId, request.instructions)
-
-            RecipeDetail(
+            
+            val details = RecipeDetail(
                 id = recipeId,
                 name = request.name,
                 description = request.description,
@@ -172,9 +179,14 @@ class RecipeRepositoryImpl : RecipeRepository {
                 tags = request.tags,
                 tools = request.tools,
                 createdAt = createdAt,
+                notes = null
+            )
+
+            Recipe(
+                id = recipeId,
+                details = details,
                 ingredients = ingredients,
                 instructions = instructions,
-                notes = null
             )
         }
     }
@@ -241,7 +253,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         }
     }
 
-    override suspend fun editRecipe(id: Uuid, request: EditRecipePayload): RecipeDetail {
+    override suspend fun editRecipe(id: Uuid, request: EditRecipePayload): Recipe {
         return transaction {
             val existing = Recipes
                 .selectAll()
@@ -261,8 +273,8 @@ class RecipeRepositoryImpl : RecipeRepository {
                 .selectAll()
                 .where { Recipes.id eq id }
                 .single()
-
-            RecipeDetail(
+                
+            val details = RecipeDetail(
                 id = updatedRow[Recipes.id],
                 name = updatedRow[Recipes.name],
                 description = updatedRow[Recipes.description],
@@ -271,6 +283,11 @@ class RecipeRepositoryImpl : RecipeRepository {
                 tags = updatedRow[Recipes.tags],
                 tools = updatedRow[Recipes.tools],
                 notes = updatedRow[Recipes.notes],
+            )
+
+            Recipe(
+                id = updatedRow[Recipes.id],
+                details = details,
                 ingredients = getIngredientsForRecipe(id),
                 instructions = getInstructionsForRecipe(id),
             )
