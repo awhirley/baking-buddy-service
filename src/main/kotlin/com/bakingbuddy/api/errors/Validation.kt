@@ -2,6 +2,8 @@ package com.bakingbuddy.api.errors
 
 import com.bakingbuddy.api.errors.FieldError
 import com.bakingbuddy.api.errors.ValidationException
+import io.ktor.server.application.ApplicationCall
+import kotlin.uuid.Uuid
 
 // =====================================================================
 // 3. VALIDATION HELPER
@@ -31,6 +33,15 @@ class Validator {
 
 fun validate(block: Validator.() -> Unit) {
     Validator().apply(block).finish()
+}
+
+fun ApplicationCall.requireUuidParam(name: String): Uuid {
+    val raw = parameters[name] ?: throw BadRequestException("Path parameter '$name' must be provided")
+    return try {
+        Uuid.parse(raw)
+    } catch (e: IllegalArgumentException) {
+        throw BadRequestException("Path parameter '$name' must be a valid UUID")
+    }
 }
 
 // Example usage inside a route handler:

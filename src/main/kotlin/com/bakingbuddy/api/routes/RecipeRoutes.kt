@@ -1,5 +1,8 @@
 package com.bakingbuddy.api.routes
 
+import com.bakingbuddy.api.errors.BadRequestException
+import com.bakingbuddy.api.errors.NotFoundException
+import com.bakingbuddy.api.errors.requireUuidParam
 import com.bakingbuddy.services.RecipeService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -16,31 +19,17 @@ fun Route.recipeRoutes(
     recipeService: RecipeService
 ) {
     get(path = "/api/recipes/{id}") {
-
         val id = call.parameters["id"]
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        if (id == null) {
-            call.respondText(
-                "Invalid recipe ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@get
-        }
-
-        val recipe = recipeService.getRecipe(Uuid.parse(id))
-
-        if (recipe == null) {
-            call.respond(
-                HttpStatusCode.NotFound
-            )
-            return@get
-        }
+        val uuid = call.requireUuidParam("id")
+        val recipe = recipeService.getRecipe(uuid)
+          ?: throw NotFoundException("Recipe", id)
 
         call.respond(recipe)
     }
     
     get(path = "/api/recipes") {
-
         val recipes = recipeService.listRecipes()
         call.respond(recipes)
     }
@@ -52,109 +41,67 @@ fun Route.recipeRoutes(
     
     patch(path = "/api/recipes/{id}") {
         val id = call.parameters["id"]
-
-        if (id == null) {
-            call.respondText(
-                "Invalid recipe ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@patch
-        }
-
-        val recipe = recipeService.editRecipe(Uuid.parse(id), call.receive())
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
+          
+        val uuid = call.requireUuidParam("id")
+        val recipe = recipeService.editRecipe(uuid, call.receive())
         
         call.respond(recipe)
     }
 
     patch(path = "/api/ingredients/{id}") {
         val id = call.parameters["id"]
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        if (id == null) {
-            call.respondText(
-                "Invalid ingredient ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@patch
-        }
-
-        val ingredient = recipeService.editIngredient(Uuid.parse(id), call.receive())
+        val uuid = call.requireUuidParam("id")
+        val ingredient = recipeService.editIngredient(uuid, call.receive())
         call.respond(ingredient)
     }
 
     patch(path = "/api/instructions/{id}") {
         val id = call.parameters["id"]
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        if (id == null) {
-            call.respondText(
-                "Invalid instruction ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@patch
-        }
-
-        val instruction = recipeService.editInstruction(Uuid.parse(id), call.receive())
+        val uuid = call.requireUuidParam("id")
+        val instruction = recipeService.editInstruction(uuid, call.receive())
         call.respond(instruction)
     }
 
     patch(path = "/api/recipes/notes/{id}") {
         val id = call.parameters["id"]
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        if (id == null) {
-            call.respondText(
-                "Invalid recipe ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@patch
-        }
-
-        val recipe = recipeService.updateRecipeNotes(Uuid.parse(id), call.receive())
+        val uuid = call.requireUuidParam("id")
+        val recipe = recipeService.updateRecipeNotes(uuid, call.receive())
         call.respond(recipe)
     }
 
     patch(path = "/api/ingredients/notes/{id}") {
         val id = call.parameters["id"]
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        if (id == null) {
-            call.respondText(
-                "Invalid ingredient ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@patch
-        }
-
-        val ingredient = recipeService.updateIngredientNotes(Uuid.parse(id), call.receive())
+        val uuid = call.requireUuidParam("id")
+        val ingredient = recipeService.updateIngredientNotes(uuid, call.receive())
         call.respond(ingredient)
     }
 
     patch(path = "/api/instructions/notes/{id}") {
         val id = call.parameters["id"]
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        if (id == null) {
-            call.respondText(
-                "Invalid instruction ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@patch
-        }
-
-        val instruction = recipeService.updateInstructionNotes(Uuid.parse(id), call.receive())
+        val uuid = call.requireUuidParam("id")
+        val instruction = recipeService.updateInstructionNotes(uuid, call.receive())
         call.respond(instruction)
     }
 
     delete(path = "/api/recipes/{id}") {
 
         val id = call.parameters["id"]
+          ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        if (id == null) {
-            call.respondText(
-                "Invalid recipe ID",
-                status = HttpStatusCode.BadRequest
-            )
-            return@delete
-        }
-
-        val deleted = recipeService.deleteRecipe(Uuid.parse(id))
-
-        call.respond(deleted)
+        val uuid = call.requireUuidParam("id")
+        
+        recipeService.deleteRecipe(uuid)
+        call.respond(HttpStatusCode.NoContent)
     }
 }

@@ -31,5 +31,5 @@ interface RecipeRepository {
     
     suspend fun updateInstructionNotes(instructionId: Uuid, notes: String?)
 
-    suspend fun deleteRecipe(id: Uuid): Boolean
+    suspend fun deleteRecipe(id: Uuid)
 }

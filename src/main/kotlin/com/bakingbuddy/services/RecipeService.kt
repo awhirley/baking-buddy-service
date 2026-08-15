@@ -51,7 +51,7 @@ class RecipeService {
         return recipeRepository.updateInstructionNotes(instructionId, notes)
     }
     
-    suspend fun deleteRecipe(id: Uuid): Boolean {
+    suspend fun deleteRecipe(id: Uuid) {
         return recipeRepository.deleteRecipe(id)
     }
 }

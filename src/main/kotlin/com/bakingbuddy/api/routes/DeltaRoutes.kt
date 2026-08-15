@@ -1,6 +1,7 @@
 package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.api.errors.BadRequestException
+import com.bakingbuddy.api.errors.requireUuidParam
 import com.bakingbuddy.services.DeltaService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -19,7 +20,8 @@ fun Route.deltaRoutes(
     val id = call.parameters["id"]
       ?: throw BadRequestException("Path parameter 'id' must be provided")
   
-    val ingredientHistory = deltaService.getIngredientHistory(Uuid.parse(id))
+    val uuid = call.requireUuidParam("id")
+    val ingredientHistory = deltaService.getIngredientHistory(uuid)
     call.respond(ingredientHistory)
   }
   
@@ -27,7 +29,8 @@ fun Route.deltaRoutes(
     val id = call.parameters["id"]
       ?: throw BadRequestException("Path parameter 'id' must be provided")
   
-    val instructionHistory = deltaService.getInstructionHistory(Uuid.parse(id))
+    val uuid = call.requireUuidParam("id")
+    val instructionHistory = deltaService.getInstructionHistory(uuid)
     call.respond(instructionHistory)
   }
 }

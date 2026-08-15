@@ -2,6 +2,7 @@ package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.NotFoundException
+import com.bakingbuddy.api.errors.requireUuidParam
 import com.bakingbuddy.services.BakeService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -21,7 +22,8 @@ fun Route.bakeRoutes(
       val id = call.parameters["id"]
         ?: throw BadRequestException("Path parameter 'id' must be provided")
         
-      val bake = bakeService.createBake(Uuid.parse(id))
+      val uuid = call.requireUuidParam("id")
+      val bake = bakeService.createBake(uuid)
       call.respond(HttpStatusCode.Created, bake)
   }
   
@@ -29,7 +31,8 @@ fun Route.bakeRoutes(
       val id = call.parameters["id"]
         ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        val bakes = bakeService.listBakes(Uuid.parse(id))
+        val uuid = call.requireUuidParam("id")
+        val bakes = bakeService.listBakes(uuid)
 
         call.respond(bakes)
     }
@@ -38,21 +41,23 @@ fun Route.bakeRoutes(
       val id = call.parameters["id"]
         ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-      val bakes = bakeService.listBakesWithProcedure(Uuid.parse(id))
+      val uuid = call.requireUuidParam("id")
+      val bakes = bakeService.listBakesWithProcedure(uuid)
 
       call.respond(bakes)
     }
 
   patch(path = "/api/bakes") {
-    val response = bakeService.updateBake( call.receive())
-    call.respond(response)
+    bakeService.updateBake( call.receive())
+    call.respond(HttpStatusCode.NoContent)
   }
   
   delete(path="api/bakes/{id}") {
     val id = call.parameters["id"]
         ?: throw BadRequestException("Path parameter 'id' must be provided")
-      
-    val response = bakeService.deleteBake(Uuid.parse(id))
-    call.respond(response)
+
+    val uuid = call.requireUuidParam("id")
+    bakeService.deleteBake(uuid)
+    call.respond(HttpStatusCode.NoContent)
   }
 }

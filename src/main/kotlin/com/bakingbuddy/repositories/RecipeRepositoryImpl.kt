@@ -1,5 +1,6 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredients
 import com.bakingbuddy.database.BakeInstructions
 import com.bakingbuddy.database.Bakes
@@ -415,12 +416,12 @@ class RecipeRepositoryImpl : RecipeRepository {
         }
     }
     
-    override suspend fun deleteRecipe(id: Uuid): Boolean {
+    override suspend fun deleteRecipe(id: Uuid) {
         return transaction {
             val existing = Recipes
                 .selectAll()
                 .where { Recipes.id eq id }
-                .singleOrNull() ?: return@transaction false
+                .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
 
             val ingredientIds = Ingredients
                 .selectAll()
@@ -454,8 +455,6 @@ class RecipeRepositoryImpl : RecipeRepository {
             Instructions.deleteWhere { Instructions.recipe_id eq id }
 
             Recipes.deleteWhere { Recipes.id eq id }
-
-            true
         }
     }
 }
