@@ -9,4 +9,5 @@
     </root>
     <logger name="org.eclipse.jetty" level="INFO"/>
     <logger name="io.netty" level="INFO"/>
+    <logger name="io.swagger.codegen.v3.generators.DefaultCodegenConfig" level="ERROR"/>
 </configuration>
