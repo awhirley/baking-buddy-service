@@ -2,6 +2,7 @@ package com.bakingbuddy.services
 
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
+import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.repositories.BakeRepositoryImpl
 import kotlin.uuid.Uuid
 
@@ -18,5 +19,9 @@ class BakeService {
     
     suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
         return bakeRepository.listBakesWithProcedure(recipeId)
+    }
+    
+    suspend fun updateBake(payload: UpdateBakePayload): Boolean {
+        return bakeRepository.updateBake(payload)
     }
 }

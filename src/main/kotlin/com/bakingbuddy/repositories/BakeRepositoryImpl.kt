@@ -19,6 +19,7 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
@@ -213,17 +214,31 @@ class BakeRepositoryImpl : BakeRepository {
             BakeDetail(
             	id = bakeId,
             	recipeId = row[Bakes.recipe_id],
-							date = row[Bakes.date],
-							results = row[Bakes.results],
-							elevation = row[Bakes.elevation],
-							notes = row[Bakes.notes],
-							createdAt = row[Bakes.created_at],
+                date = row[Bakes.date],
+                results = row[Bakes.results],
+                elevation = row[Bakes.elevation],
+                notes = row[Bakes.notes],
+                createdAt = row[Bakes.created_at],
             )
         }
     }
   }
 
-  // override suspend fun updateBake(payload: UpdateBakePayload): Bake {
-    
-  // }  
+  override suspend fun updateBake(payload: UpdateBakePayload): Boolean {
+    return transaction {
+      Bakes
+        .selectAll()
+        .where { Bakes.id eq payload.bakeId }
+        .singleOrNull() ?: throw NoSuchElementException("Bake ${payload.bakeId} not found")
+          
+      Bakes.update({ Bakes.id eq payload.bakeId }) {
+          payload.date?.let { date -> it[Bakes.date] = date }
+          payload.results?.let { results -> it[Bakes.results] = results }
+          payload.elevation?.let { elevation -> it[Bakes.elevation] = elevation }
+          payload.notes?.let { notes -> it[Bakes.notes] = notes }
+      }
+      
+      true
+    }
+  }
 }

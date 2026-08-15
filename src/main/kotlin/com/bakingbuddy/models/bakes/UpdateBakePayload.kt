@@ -1,17 +1,19 @@
 package com.bakingbuddy.models.bakes
 
-import com.bakingbuddy.serializers.InstantSerializer
+import com.bakingbuddy.serializers.LocalDateSerializer
 import kotlinx.serialization.Serializable
-import java.time.Instant
+import java.time.LocalDate
 import kotlin.uuid.Uuid
 
 @Serializable
 data class UpdateBakePayload(
-    val recipeId: Uuid,
-    @Serializable(with = InstantSerializer::class) val date: Instant?,
-    val results: String?,
-    val elevation: Int?,
+    val bakeId: Uuid,
+    @Serializable(with = LocalDateSerializer::class) val date: LocalDate? = null,
+    val results: String? = null,
+    val elevation: Int? = null,
     val notes: String? = null,
-    val ingredientVersions: List<BakeIngredientPayload>?,
-    val instructionVersions: List<BakeInstructionPayload>?,
+    
+    // TODO: Support these in the repsitory layer
+    val ingredientVersions: List<BakeIngredientPayload>? = null,
+    val instructionVersions: List<BakeInstructionPayload>? = null,
 )

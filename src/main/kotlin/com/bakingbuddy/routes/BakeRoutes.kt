@@ -7,6 +7,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import kotlin.uuid.Uuid
 
@@ -57,8 +58,14 @@ fun Route.bakeRoutes(
             return@get
         }
 
-        val bakes = bakeService.listBakes(Uuid.parse(id))
+        val bakes = bakeService.listBakesWithProcedure(Uuid.parse(id))
 
         call.respond(bakes)
+    }
+
+    patch(path = "/api/bakes") {
+
+        val bake = bakeService.updateBake( call.receive())
+        call.respond(bake)
     }
 }
