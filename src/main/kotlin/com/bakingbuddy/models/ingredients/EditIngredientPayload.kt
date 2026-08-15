@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class EditIngredientPayload(
-    val amount: String? = null,
-    val name: String? = null,
+    val amount: String,
+    val name: String,
     val setAsBestVersion: Boolean? = false,
 )
