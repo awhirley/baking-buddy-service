@@ -1,7 +1,5 @@
 package com.bakingbuddy.api.errors
 
-import com.bakingbuddy.api.errors.FieldError
-import com.bakingbuddy.api.errors.ValidationException
 import io.ktor.server.application.ApplicationCall
 import kotlin.uuid.Uuid
 
@@ -24,6 +22,10 @@ class Validator {
 
     fun requirePositive(value: Number?, field: String) {
         if (value != null) require(value.toDouble() > 0, field, "must be positive")
+    }
+    
+    fun requireNotBlankIfPresent(value: String?, field: String) {
+        if (value != null) require(value.isNotBlank(), field, "must not be blank")
     }
 
     fun finish() {

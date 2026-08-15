@@ -3,6 +3,8 @@ package com.bakingbuddy.api.routes
 import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.api.errors.requireUuidParam
+import com.bakingbuddy.api.errors.validate
+import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.services.BakeService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive

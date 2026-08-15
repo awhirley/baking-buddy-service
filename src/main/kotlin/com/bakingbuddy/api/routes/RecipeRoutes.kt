@@ -3,6 +3,11 @@ package com.bakingbuddy.api.routes
 import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.api.errors.requireUuidParam
+import com.bakingbuddy.api.errors.validate
+import com.bakingbuddy.models.ingredients.EditIngredientPayload
+import com.bakingbuddy.models.instructions.EditInstructionPayload
+import com.bakingbuddy.models.recipes.CreateRecipePayload
+import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.services.RecipeService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -35,7 +40,35 @@ fun Route.recipeRoutes(
     }
     
     post(path = "/api/recipes") {
-        val recipe = recipeService.createRecipe(call.receive())
+      val payload = call.receive<CreateRecipePayload>()
+
+      validate {
+          requireNotBlank(payload.name, "name")
+          requireNotBlank(payload.description, "description")
+          requireNotBlankIfPresent(payload.recipeSource, "recipeSource")
+
+          require(payload.ingredients.isNotEmpty(), "ingredients", "must contain at least one ingredient")
+          require(payload.instructions.isNotEmpty(), "instructions", "must contain at least one instruction")
+
+          payload.ingredients.forEachIndexed { index, ingredient ->
+              requireNotBlank(ingredient.name, "ingredients[$index].name")
+              requireNotBlank(ingredient.amount, "ingredients[$index].amount")
+          }
+
+          payload.instructions.forEachIndexed { index, instruction ->
+              requireNotBlank(instruction, "instructions[$index]")
+          }
+
+          payload.tags?.forEachIndexed { index, tag ->
+              requireNotBlank(tag, "tags[$index]")
+          }
+
+          payload.tools?.forEachIndexed { index, tool ->
+              requireNotBlank(tool, "tools[$index]")
+          }
+        }
+
+        val recipe = recipeService.createRecipe(payload)
         call.respond(HttpStatusCode.Created, recipe)
     }
     
@@ -43,9 +76,24 @@ fun Route.recipeRoutes(
         val id = call.parameters["id"]
           ?: throw BadRequestException("Path parameter 'id' must be provided")
           
+        val payload = call.receive<EditRecipePayload>()
+
+        validate {
+          requireNotBlankIfPresent(payload.name, "name")
+          requireNotBlankIfPresent(payload.description, "description")
+          
+          payload.tags?.forEachIndexed { index, tag ->
+              requireNotBlank(tag, "tags[$index]")
+          }
+          
+          payload.tools?.forEachIndexed { index, tool ->
+              requireNotBlank(tool, "tools[$index]")
+          }
+        }
+          
         val uuid = call.requireUuidParam("id")
         val recipe = recipeService.editRecipe(uuid, call.receive())
-        
+
         call.respond(recipe)
     }
 
@@ -53,6 +101,13 @@ fun Route.recipeRoutes(
         val id = call.parameters["id"]
           ?: throw BadRequestException("Path parameter 'id' must be provided")
 
+        val payload = call.receive<EditIngredientPayload>()
+          
+        validate {
+          requireNotBlank(payload.amount, "amount")
+          requireNotBlank(payload.name, "name")
+        }
+          
         val uuid = call.requireUuidParam("id")
         val ingredient = recipeService.editIngredient(uuid, call.receive())
         call.respond(ingredient)
@@ -61,6 +116,12 @@ fun Route.recipeRoutes(
     patch(path = "/api/instructions/{id}") {
         val id = call.parameters["id"]
           ?: throw BadRequestException("Path parameter 'id' must be provided")
+          
+        val payload = call.receive<EditInstructionPayload>()
+          
+        validate {
+          requireNotBlank(payload.description, "description")
+        }
 
         val uuid = call.requireUuidParam("id")
         val instruction = recipeService.editInstruction(uuid, call.receive())
