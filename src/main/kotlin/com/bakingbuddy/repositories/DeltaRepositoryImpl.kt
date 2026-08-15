@@ -1,5 +1,6 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.IngredientDelta
 import com.bakingbuddy.database.Ingredients
 import com.bakingbuddy.database.InstructionDelta
@@ -25,7 +26,7 @@ class DeltaRepositoryImpl : DeltaRepository {
       val ingredientRow = Ingredients
           .selectAll()
           .where { Ingredients.id eq id }
-          .singleOrNull() ?: throw NoSuchElementException("Ingredient $id not found")
+          .singleOrNull() ?: throw NotFoundException("Ingredient", id.toString())
 
       val history = IngredientDelta
           .selectAll()
@@ -56,7 +57,7 @@ class DeltaRepositoryImpl : DeltaRepository {
         val instructionRow = Instructions
             .selectAll()
             .where { Instructions.id eq id }
-            .singleOrNull() ?: throw NoSuchElementException("Instruction $id not found")
+            .singleOrNull() ?: throw NotFoundException("Instruction", id.toString())
 
         val history = InstructionDelta
             .selectAll()
