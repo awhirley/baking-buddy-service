@@ -24,4 +24,8 @@ class BakeService {
     suspend fun updateBake(payload: UpdateBakePayload): Boolean {
         return bakeRepository.updateBake(payload)
     }
+    
+    suspend fun deleteBake(id: Uuid): Boolean {
+        return bakeRepository.deleteBake(id)
+    }
 }

@@ -16,6 +16,7 @@ import com.bakingbuddy.models.bakes.UpdateBakePayload
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -238,6 +239,21 @@ class BakeRepositoryImpl : BakeRepository {
           payload.notes?.let { notes -> it[Bakes.notes] = notes }
       }
       
+      true
+    }
+  }
+  
+  override suspend fun deleteBake(id: Uuid): Boolean {
+    return transaction {
+      val existing = Bakes
+        .selectAll()
+        .where { Bakes.id eq id }
+        .singleOrNull() ?: return@transaction false
+
+      BakeIngredients.deleteWhere { BakeIngredients.bake_id eq id }
+      BakeInstructions.deleteWhere { BakeInstructions.bake_id eq id }
+      Bakes.deleteWhere { Bakes.id eq id }
+
       true
     }
   }
