@@ -355,7 +355,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             InstructionDelta.insert {
                 it[InstructionDelta.instruction_id] = instructionId
                 it[InstructionDelta.version] = newVersion
-                it[InstructionDelta.description] = description
+                it[InstructionDelta.description] = request.description
                 it[InstructionDelta.created_at] = createdAt
             }
 

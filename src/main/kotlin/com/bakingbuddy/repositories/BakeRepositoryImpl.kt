@@ -80,7 +80,7 @@ class BakeRepositoryImpl : BakeRepository {
             .where { Instructions.recipe_id eq recipeId }
             .count()
         check(instructionDeltas.size.toLong() == instructionConceptCount) {
-            "Missing instruction_delta row for best_version on one or more instructions of recipe ${recipeId}"
+            "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId"
         }
 
         val bakeId = Uuid.random()
