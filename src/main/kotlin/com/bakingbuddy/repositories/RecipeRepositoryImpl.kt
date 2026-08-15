@@ -1,5 +1,6 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredients
 import com.bakingbuddy.database.BakeInstructions
@@ -92,9 +93,11 @@ class RecipeRepositoryImpl : RecipeRepository {
             .selectAll()
             .where { Ingredients.recipe_id eq recipeId }
             .count()
-
-        check(ingredients.size.toLong() == ingredientConceptCount) {
-            "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId"
+        
+        if (ingredients.size.toLong() != ingredientConceptCount) {
+            throw DataIntegrityException(
+                "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId"
+            )
         }
         
         return ingredients
@@ -128,8 +131,10 @@ class RecipeRepositoryImpl : RecipeRepository {
             .where { Instructions.recipe_id eq recipeId }
             .count()
 
-        check(instructions.size.toLong() == instructionConceptCount) {
-            "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId"
+        if (instructions.size.toLong() != instructionConceptCount) {
+            throw DataIntegrityException(
+                "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId"
+            )
         }
 
         return instructions
@@ -259,7 +264,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             val existing = Recipes
                 .selectAll()
                 .where { Recipes.id eq id }
-                .singleOrNull() ?: throw NoSuchElementException("Recipe ${Recipes.id} not found")
+                .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
 
             // Only touches Recipes table columns — ingredients/instructions are untouched here
             Recipes.update({ Recipes.id eq id }) {
@@ -300,7 +305,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             val ingredientRow = Ingredients
                 .selectAll()
                 .where { Ingredients.id eq ingredientId }
-                .singleOrNull() ?: throw NoSuchElementException("Ingredient $ingredientId not found")
+                .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
 
             val maxVersionExpr = IngredientDelta.version.max()
             val highestVersion = IngredientDelta
@@ -342,7 +347,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             val instructionRow = Instructions
                 .selectAll()
                 .where { Instructions.id eq instructionId }
-                .singleOrNull() ?: throw NoSuchElementException("Instruction $instructionId not found")
+                .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
 
             val maxVersionExpr = InstructionDelta.version.max()
             val highestVersion = InstructionDelta
@@ -382,7 +387,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             Recipes
                 .selectAll()
                 .where { Recipes.id eq recipeId }
-                .singleOrNull() ?: throw NoSuchElementException("Recipe $recipeId not found")
+                .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
             val updatedRows = Recipes.update({ Recipes.id eq recipeId }) {
                 it[Recipes.notes] = notes
@@ -395,10 +400,10 @@ class RecipeRepositoryImpl : RecipeRepository {
             Ingredients
                 .selectAll()
                 .where { Ingredients.id eq ingredientId }
-                .singleOrNull() ?: throw NoSuchElementException("Ingredient $ingredientId not found")
+                .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
                 
             val updatedRows = Ingredients.update({ Ingredients.id eq ingredientId }) {
-                it[Ingredients.notes] = notes as String
+                it[Ingredients.notes] = notes
             }
         }
     }
@@ -408,10 +413,10 @@ class RecipeRepositoryImpl : RecipeRepository {
             Instructions
                 .selectAll()
                 .where { Instructions.id eq instructionId }
-                .singleOrNull() ?: throw NoSuchElementException("Recipe $instructionId not found")
+                .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
                 
             val updatedRows = Instructions.update({ Instructions.id eq instructionId }) {
-                it[Instructions.notes] = notes as String
+                it[Instructions.notes] = notes
             }
         }
     }

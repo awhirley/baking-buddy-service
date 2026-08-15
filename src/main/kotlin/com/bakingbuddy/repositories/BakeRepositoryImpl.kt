@@ -87,7 +87,7 @@ class BakeRepositoryImpl : BakeRepository {
             .where { Instructions.recipe_id eq recipeId }
             .count()
         
-        if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
+        if (instructionDeltas.size.toLong() != instructionConceptCount) {
             throw DataIntegrityException(
                 "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId"
             )
@@ -207,7 +207,7 @@ class BakeRepositoryImpl : BakeRepository {
   }
 
   // Load all details of all bakes
-	override suspend fun listBakes(recipeId: Uuid): List<BakeDetail> {
+  override suspend fun listBakes(recipeId: Uuid): List<BakeDetail> {
     return transaction {
         val bakeRows = Bakes
             .selectAll()
