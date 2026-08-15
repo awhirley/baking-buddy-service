@@ -1,5 +1,7 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.errors.DataIntegrityException
+import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredients
 import com.bakingbuddy.database.BakeInstructions
 import com.bakingbuddy.database.Bakes
@@ -30,7 +32,7 @@ class BakeRepositoryImpl : BakeRepository {
         Recipes
             .selectAll()
             .where { Recipes.id eq recipeId }
-            .singleOrNull() ?: throw NoSuchElementException("Recipe $recipeId not found")
+            .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
         // Pull the current best_version delta for every ingredient/instruction of this recipe.
         val ingredientDeltas = Ingredients
@@ -55,8 +57,11 @@ class BakeRepositoryImpl : BakeRepository {
             .selectAll()
             .where { Ingredients.recipe_id eq recipeId }
             .count()
-        check(ingredientDeltas.size.toLong() == ingredientConceptCount) {
-            "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId"
+        
+        if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
+            throw DataIntegrityException(
+                "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId"
+            )
         }
 
         val instructionDeltas = Instructions
@@ -81,8 +86,11 @@ class BakeRepositoryImpl : BakeRepository {
             .selectAll()
             .where { Instructions.recipe_id eq recipeId }
             .count()
-        check(instructionDeltas.size.toLong() == instructionConceptCount) {
-            "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId"
+        
+        if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
+            throw DataIntegrityException(
+                "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId"
+            )
         }
 
         val bakeId = Uuid.random()
@@ -225,12 +233,12 @@ class BakeRepositoryImpl : BakeRepository {
     }
   }
 
-  override suspend fun updateBake(payload: UpdateBakePayload): Boolean {
+  override suspend fun updateBake(payload: UpdateBakePayload) {
     return transaction {
       Bakes
         .selectAll()
         .where { Bakes.id eq payload.bakeId }
-        .singleOrNull() ?: throw NoSuchElementException("Bake ${payload.bakeId} not found")
+        .singleOrNull() ?: throw NotFoundException("Bake", payload.bakeId.toString())
           
       Bakes.update({ Bakes.id eq payload.bakeId }) {
           payload.date?.let { date -> it[Bakes.date] = date }
@@ -238,23 +246,19 @@ class BakeRepositoryImpl : BakeRepository {
           payload.elevation?.let { elevation -> it[Bakes.elevation] = elevation }
           payload.notes?.let { notes -> it[Bakes.notes] = notes }
       }
-      
-      true
     }
   }
   
-  override suspend fun deleteBake(id: Uuid): Boolean {
+  override suspend fun deleteBake(id: Uuid) {
     return transaction {
       val existing = Bakes
         .selectAll()
         .where { Bakes.id eq id }
-        .singleOrNull() ?: return@transaction false
+        .singleOrNull() ?: throw NotFoundException("Bake", id.toString())
 
       BakeIngredients.deleteWhere { BakeIngredients.bake_id eq id }
       BakeInstructions.deleteWhere { BakeInstructions.bake_id eq id }
       Bakes.deleteWhere { Bakes.id eq id }
-
-      true
     }
   }
 }

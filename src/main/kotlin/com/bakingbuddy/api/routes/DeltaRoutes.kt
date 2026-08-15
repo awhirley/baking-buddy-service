@@ -1,4 +1,4 @@
-package com.bakingbuddy.routes
+package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.services.DeltaService
 import io.ktor.http.HttpStatusCode
@@ -20,7 +20,7 @@ fun Route.deltaRoutes(
     if (id == null) {
       call.respondText(
         "Invalid ingredient ID",
-        status = io.ktor.http.HttpStatusCode.BadRequest
+        status = HttpStatusCode.BadRequest
       )
       return@get
     }
@@ -36,7 +36,7 @@ fun Route.deltaRoutes(
     if (id == null) {
       call.respondText(
         "Invalid instruction ID",
-        status = io.ktor.http.HttpStatusCode.BadRequest
+        status = HttpStatusCode.BadRequest
       )
       return@get
     }

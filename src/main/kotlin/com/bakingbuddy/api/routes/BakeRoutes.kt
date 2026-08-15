@@ -1,5 +1,7 @@
-package com.bakingbuddy.routes
+package com.bakingbuddy.api.routes
 
+import com.bakingbuddy.api.errors.BadRequestException
+import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.services.BakeService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -17,29 +19,15 @@ fun Route.bakeRoutes(
 ) {
   post(path = "/api/bakes/recipe/{id}") {
       val id = call.parameters["id"]
-
-      if (id == null) {
-        call.respondText(
-          "Invalid recipe ID",
-          status = io.ktor.http.HttpStatusCode.BadRequest
-        )
-        return@post
-      }
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
         
       val bake = bakeService.createBake(Uuid.parse(id))
       call.respond(HttpStatusCode.Created, bake)
   }
   
   get(path = "/api/bakes/recipe/{id}") {
-        val id = call.parameters["id"]
-
-        if (id == null) {
-            call.respondText(
-                "Invalid recipe ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
-            )
-            return@get
-        }
+      val id = call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
         val bakes = bakeService.listBakes(Uuid.parse(id))
 
@@ -48,14 +36,7 @@ fun Route.bakeRoutes(
     
   get(path = "/api/bakes/recipe/{id}/procedure") {
       val id = call.parameters["id"]
-
-      if (id == null) {
-          call.respondText(
-              "Invalid recipe ID",
-              status = io.ktor.http.HttpStatusCode.BadRequest
-          )
-          return@get
-      }
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
       val bakes = bakeService.listBakesWithProcedure(Uuid.parse(id))
 
@@ -63,22 +44,15 @@ fun Route.bakeRoutes(
     }
 
   patch(path = "/api/bakes") {
-    val bake = bakeService.updateBake( call.receive())
-    call.respond(bake)
+    val response = bakeService.updateBake( call.receive())
+    call.respond(response)
   }
   
   delete(path="api/bakes/{id}") {
     val id = call.parameters["id"]
-
-    if (id == null) {
-      call.respondText(
-        "Invalid bake ID",
-        status = io.ktor.http.HttpStatusCode.BadRequest
-      )
-      return@delete
-    }
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
       
-    bakeService.deleteBake(Uuid.parse(id))
-    call.respond(true)
+    val response = bakeService.deleteBake(Uuid.parse(id))
+    call.respond(response)
   }
 }

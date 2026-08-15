@@ -1,14 +1,13 @@
 package com.bakingbuddy.plugins
 
-import com.bakingbuddy.routes.bakeRoutes
-import com.bakingbuddy.routes.deltaRoutes
-import com.bakingbuddy.routes.healthRoutes
-import com.bakingbuddy.routes.recipeRoutes
+import com.bakingbuddy.api.routes.bakeRoutes
+import com.bakingbuddy.api.routes.deltaRoutes
+import com.bakingbuddy.api.routes.healthRoutes
+import com.bakingbuddy.api.routes.recipeRoutes
 import com.bakingbuddy.services.BakeService
 import com.bakingbuddy.services.DeltaService
 import com.bakingbuddy.services.RecipeService
 import io.ktor.http.HttpMethod
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.cors.routing.CORS

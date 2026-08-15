@@ -21,11 +21,11 @@ class BakeService {
         return bakeRepository.listBakesWithProcedure(recipeId)
     }
     
-    suspend fun updateBake(payload: UpdateBakePayload): Boolean {
+    suspend fun updateBake(payload: UpdateBakePayload) {
         return bakeRepository.updateBake(payload)
     }
     
-    suspend fun deleteBake(id: Uuid): Boolean {
+    suspend fun deleteBake(id: Uuid) {
         return bakeRepository.deleteBake(id)
     }
 }

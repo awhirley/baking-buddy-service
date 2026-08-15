@@ -1,4 +1,4 @@
-package com.bakingbuddy.routes
+package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.services.RecipeService
 import io.ktor.http.HttpStatusCode
@@ -22,7 +22,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid recipe ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@get
         }
@@ -31,7 +31,7 @@ fun Route.recipeRoutes(
 
         if (recipe == null) {
             call.respond(
-                io.ktor.http.HttpStatusCode.NotFound
+                HttpStatusCode.NotFound
             )
             return@get
         }
@@ -56,7 +56,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid recipe ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@patch
         }
@@ -72,7 +72,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid ingredient ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@patch
         }
@@ -87,7 +87,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid instruction ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@patch
         }
@@ -102,7 +102,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid recipe ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@patch
         }
@@ -117,7 +117,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid ingredient ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@patch
         }
@@ -132,7 +132,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid instruction ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@patch
         }
@@ -148,7 +148,7 @@ fun Route.recipeRoutes(
         if (id == null) {
             call.respondText(
                 "Invalid recipe ID",
-                status = io.ktor.http.HttpStatusCode.BadRequest
+                status = HttpStatusCode.BadRequest
             )
             return@delete
         }
