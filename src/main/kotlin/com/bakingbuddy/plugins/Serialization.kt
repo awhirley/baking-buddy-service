@@ -12,6 +12,8 @@ import kotlinx.serialization.json.JsonNamingStrategy
 fun Application.configureSerialization() {
     val json = Json {
         namingStrategy = JsonNamingStrategy.SnakeCase
+        exceptionsWithDebugInfo = true
+        prettyPrint = true
     }
     
     install(ContentNegotiation) {

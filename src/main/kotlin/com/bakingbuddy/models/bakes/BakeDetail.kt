@@ -9,9 +9,9 @@ import kotlin.uuid.Uuid
 data class BakeDetail(
     val id: Uuid,
     val recipeId: Uuid,
-    val results: String,
-    val elevation: Int,
-    val notes: String?,
-    @Serializable(with = InstantSerializer::class) val date: Instant,
+    val results: String? = null,
+    val elevation: Int? = null,
+    val notes: String? = null,
+    @Serializable(with = InstantSerializer::class) val date: Instant? = null,
     @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )

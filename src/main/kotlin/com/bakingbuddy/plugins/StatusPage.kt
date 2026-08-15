@@ -10,6 +10,17 @@ import kotlinx.serialization.SerializationException
 
 fun Application.configureStatusPages() {
     install(StatusPages) {
+        exception<Throwable> { call, cause ->
+            cause.printStackTrace()
+
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf(
+                    "error" to (cause.message ?: "Unknown error")
+                )
+            )
+        }
+    
         exception<ContentTransformationException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,

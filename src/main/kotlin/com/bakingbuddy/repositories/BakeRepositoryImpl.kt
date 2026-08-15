@@ -12,70 +12,75 @@ import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
-import com.bakingbuddy.models.bakes.CreateBakePayload
-import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
-import com.bakingbuddy.models.ingredients.IngredientHistory
-import com.bakingbuddy.models.instructions.InstructionDeltaEntry
-import com.bakingbuddy.models.instructions.InstructionHistory
+import com.bakingbuddy.models.bakes.UpdateBakePayload
 import org.jetbrains.exposed.v1.core.JoinType
-import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
 class BakeRepositoryImpl : BakeRepository {
-  override suspend fun createBake(payload: CreateBakePayload): Bake {
+  override suspend fun createBake(recipeId: Uuid): Bake {
     return transaction {
         Recipes
             .selectAll()
-            .where { Recipes.id eq payload.recipeId }
-            .singleOrNull() ?: throw NoSuchElementException("Recipe ${payload.recipeId} not found")
+            .where { Recipes.id eq recipeId }
+            .singleOrNull() ?: throw NoSuchElementException("Recipe $recipeId not found")
 
-        val currentIngredientIds = Ingredients
+        // Pull the current best_version delta for every ingredient/instruction of this recipe.
+        val ingredientDeltas = Ingredients
+            .join(
+                IngredientDelta,
+                JoinType.INNER,
+                onColumn = Ingredients.id,
+                otherColumn = IngredientDelta.ingredient_id,
+                additionalConstraint = { IngredientDelta.version eq Ingredients.best_version },
+            )
             .selectAll()
-            .where { Ingredients.recipe_id eq payload.recipeId }
-            .map { it[Ingredients.id] }
-            .toSet()
-        val providedIngredientIds = payload.ingredientVersions.map { it.ingredientId }.toSet()
-        require(providedIngredientIds == currentIngredientIds) {
-            "Bake must specify exactly one version for every current ingredient of recipe ${payload.recipeId}. " +
-                "Missing: ${currentIngredientIds - providedIngredientIds}, " +
-                "Unexpected: ${providedIngredientIds - currentIngredientIds}"
-        }
+            .where { Ingredients.recipe_id eq recipeId }
+            .map { row ->
+                Triple(
+                    row[IngredientDelta.id],
+                    row[IngredientDelta.ingredient_id],
+                    row[IngredientDelta.version],
+                )
+            }
 
-        val currentInstructionIds = Instructions
+        val ingredientConceptCount = Ingredients
             .selectAll()
-            .where { Instructions.recipe_id eq payload.recipeId }
-            .map { it[Instructions.id] }
-            .toSet()
-        val providedInstructionIds = payload.instructionVersions.map { it.instructionId }.toSet()
-        require(providedInstructionIds == currentInstructionIds) {
-            "Bake must specify exactly one version for every current instruction of recipe ${payload.recipeId}. " +
-                "Missing: ${currentInstructionIds - providedInstructionIds}, " +
-                "Unexpected: ${providedInstructionIds - currentInstructionIds}"
+            .where { Ingredients.recipe_id eq recipeId }
+            .count()
+        check(ingredientDeltas.size.toLong() == ingredientConceptCount) {
+            "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId"
         }
 
-        val ingredientDeltaIds = payload.ingredientVersions.map { pin ->
-            IngredientDelta
-                .selectAll()
-                .where { (IngredientDelta.ingredient_id eq pin.ingredientId) and (IngredientDelta.version eq pin.version) }
-                .singleOrNull()?.get(IngredientDelta.id)
-                ?: throw NoSuchElementException("No delta found for ingredient ${pin.ingredientId} version ${pin.version}")
-        }
+        val instructionDeltas = Instructions
+            .join(
+                InstructionDelta,
+                JoinType.INNER,
+                onColumn = Instructions.id,
+                otherColumn = InstructionDelta.instruction_id,
+                additionalConstraint = { InstructionDelta.version eq Instructions.best_version },
+            )
+            .selectAll()
+            .where { Instructions.recipe_id eq recipeId }
+            .map { row ->
+                Triple(
+                    row[InstructionDelta.id],
+                    row[InstructionDelta.instruction_id],
+                    row[InstructionDelta.version],
+                )
+            }
 
-        val instructionDeltaIds = payload.instructionVersions.map { pin ->
-            InstructionDelta
-                .selectAll()
-                .where { (InstructionDelta.instruction_id eq pin.instructionId) and (InstructionDelta.version eq pin.version) }
-                .singleOrNull()?.get(InstructionDelta.id)
-                ?: throw NoSuchElementException("No delta found for instruction ${pin.instructionId} version ${pin.version}")
+        val instructionConceptCount = Instructions
+            .selectAll()
+            .where { Instructions.recipe_id eq recipeId }
+            .count()
+        check(instructionDeltas.size.toLong() == instructionConceptCount) {
+            "Missing instruction_delta row for best_version on one or more instructions of recipe ${recipeId}"
         }
 
         val bakeId = Uuid.random()
@@ -83,15 +88,11 @@ class BakeRepositoryImpl : BakeRepository {
 
         Bakes.insert {
             it[Bakes.id] = bakeId
-            it[Bakes.recipe_id] = payload.recipeId
-            it[Bakes.date] = payload.date
-            it[Bakes.results] = payload.results
-            it[Bakes.elevation] = payload.elevation
-            it[Bakes.notes] = payload.notes
+            it[Bakes.recipe_id] = recipeId
             it[Bakes.created_at] = createdAt
         }
 
-        ingredientDeltaIds.forEach { deltaId ->
+        ingredientDeltas.forEach { (deltaId, _, _) ->
             BakeIngredients.insert {
                 it[BakeIngredients.id] = Uuid.random()
                 it[BakeIngredients.bake_id] = bakeId
@@ -99,7 +100,7 @@ class BakeRepositoryImpl : BakeRepository {
             }
         }
 
-        instructionDeltaIds.forEach { deltaId ->
+        instructionDeltas.forEach { (deltaId, _, _) ->
             BakeInstructions.insert {
                 it[BakeInstructions.id] = Uuid.random()
                 it[BakeInstructions.bake_id] = bakeId
@@ -108,26 +109,27 @@ class BakeRepositoryImpl : BakeRepository {
         }
 
         val bakeDetail = BakeDetail(
-          id = bakeId,
-          recipeId = payload.recipeId,
-          date = payload.date,
-          results = payload.results,
-          elevation = payload.elevation,
-          notes = payload.notes,
-          createdAt = createdAt
+            id = bakeId,
+            recipeId = recipeId,
+            createdAt = createdAt,
         )
+
         Bake(
             id = bakeId,
-            recipeId = payload.recipeId,
+            recipeId = recipeId,
             details = bakeDetail,
-            ingredientVersions = payload.ingredientVersions,
-            instructionVersions = payload.instructionVersions,
+            ingredientVersions = ingredientDeltas.map { (_, ingredientId, version) ->
+                BakeIngredientPayload(ingredientId = ingredientId, version = version)
+            },
+            instructionVersions = instructionDeltas.map { (_, instructionId, version) ->
+                BakeInstructionPayload(instructionId = instructionId, version = version)
+            },
         )
     }
 }
 
 	// Load all bakes with ingredients and instructions
-	override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
+  override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
     return transaction {
         val bakeRows = Bakes
             .selectAll()
@@ -220,4 +222,8 @@ class BakeRepositoryImpl : BakeRepository {
         }
     }
   }
+
+  // override suspend fun updateBake(payload: UpdateBakePayload): Bake {
+    
+  // }  
 }

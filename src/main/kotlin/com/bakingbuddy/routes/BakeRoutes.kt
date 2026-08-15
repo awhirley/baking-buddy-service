@@ -13,9 +13,19 @@ import kotlin.uuid.Uuid
 fun Route.bakeRoutes(
     bakeService: BakeService
 ) {
-  post(path = "/api/bakes") {
-      val recipe = bakeService.createBake(call.receive())
-      call.respond(HttpStatusCode.Created, recipe)
+  post(path = "/api/bakes/recipe/{id}") {
+      val id = call.parameters["id"]
+
+      if (id == null) {
+        call.respondText(
+          "Invalid recipe ID",
+          status = io.ktor.http.HttpStatusCode.BadRequest
+        )
+        return@post
+      }
+        
+      val bake = bakeService.createBake(Uuid.parse(id))
+      call.respond(HttpStatusCode.Created, bake)
   }
   
   get(path = "/api/bakes/recipe/{id}") {
