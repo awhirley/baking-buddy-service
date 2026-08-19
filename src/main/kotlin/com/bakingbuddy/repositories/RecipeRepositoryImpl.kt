@@ -208,7 +208,12 @@ class RecipeRepositoryImpl : RecipeRepository {
       Ingredient(
         id = ingredientId,
         recipeId = ingredientRow[IngredientsTable.recipe_id],
-        bestVersion = if (request.setAsBestVersion ?: false) newVersion else ingredientRow[IngredientsTable.best_version],
+        bestVersion =
+          if (request.setAsBestVersion ?: false) {
+            newVersion
+          } else {
+            ingredientRow[IngredientsTable.best_version]
+          },
         notes = ingredientRow[IngredientsTable.notes],
         createdAt = ingredientRow[IngredientsTable.created_at],
         amount = request.amount,
@@ -253,7 +258,14 @@ class RecipeRepositoryImpl : RecipeRepository {
       Instruction(
         id = instructionId,
         recipeId = instructionRow[InstructionsTable.recipe_id],
-        bestVersion = if (request.setAsBestVersion ?: false) newVersion else instructionRow[InstructionsTable.best_version],
+        bestVersion =
+          if (request.setAsBestVersion
+            ?: false
+          ) {
+            newVersion
+          } else {
+            instructionRow[InstructionsTable.best_version]
+          },
         notes = instructionRow[InstructionsTable.notes],
         createdAt = instructionRow[InstructionsTable.created_at],
         description = request.description,
