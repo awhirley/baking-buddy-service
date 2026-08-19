@@ -11,12 +11,12 @@ import com.bakingbuddy.database.InstructionDelta
 import com.bakingbuddy.database.Instructions
 import com.bakingbuddy.database.Recipes
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
-import com.bakingbuddy.models.recipes.CreateRecipePayload
 import com.bakingbuddy.models.ingredients.EditIngredientPayload
-import com.bakingbuddy.models.instructions.EditInstructionPayload
-import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.models.ingredients.Ingredient
+import com.bakingbuddy.models.instructions.EditInstructionPayload
 import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.recipes.CreateRecipePayload
+import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.models.recipes.Recipe
 import com.bakingbuddy.models.recipes.RecipeDetail
 import org.jetbrains.exposed.v1.core.JoinType
@@ -33,27 +33,28 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 class RecipeRepositoryImpl : RecipeRepository {
-
     override suspend fun findById(id: Uuid): Recipe? {
         return transaction {
-            val recipeRow = Recipes
-                .selectAll()
-                .where { Recipes.id eq id }
-                .singleOrNull() ?: return@transaction null
+            val recipeRow =
+                Recipes
+                    .selectAll()
+                    .where { Recipes.id eq id }
+                    .singleOrNull() ?: return@transaction null
 
             val ingredients = getIngredientsForRecipe(id)
             val instructions = getInstructionsForRecipe(id)
-            
-            val details = RecipeDetail(
-                id = recipeRow[Recipes.id],
-                name = recipeRow[Recipes.name],
-                description = recipeRow[Recipes.description],
-                createdAt = recipeRow[Recipes.created_at],
-                recipeSource = recipeRow[Recipes.recipe_source],
-                tags = recipeRow[Recipes.tags],
-                tools = recipeRow[Recipes.tools],
-                notes = recipeRow[Recipes.notes],
-            )
+
+            val details =
+                RecipeDetail(
+                    id = recipeRow[Recipes.id],
+                    name = recipeRow[Recipes.name],
+                    description = recipeRow[Recipes.description],
+                    createdAt = recipeRow[Recipes.created_at],
+                    recipeSource = recipeRow[Recipes.recipe_source],
+                    tags = recipeRow[Recipes.tags],
+                    tools = recipeRow[Recipes.tools],
+                    notes = recipeRow[Recipes.notes],
+                )
 
             Recipe(
                 id = recipeRow[Recipes.id],
@@ -63,85 +64,91 @@ class RecipeRepositoryImpl : RecipeRepository {
             )
         }
     }
-    
-    fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
-        val ingredients = transaction {
-            val ingredientJoin = Ingredients.join(
-                IngredientDelta,
-                JoinType.INNER,
-                onColumn = Ingredients.id,
-                otherColumn = IngredientDelta.ingredient_id,
-                additionalConstraint = { IngredientDelta.version eq Ingredients.best_version },
-            )
 
-            ingredientJoin
+    fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
+        val ingredients =
+            transaction {
+                val ingredientJoin =
+                    Ingredients.join(
+                        IngredientDelta,
+                        JoinType.INNER,
+                        onColumn = Ingredients.id,
+                        otherColumn = IngredientDelta.ingredient_id,
+                        additionalConstraint = { IngredientDelta.version eq Ingredients.best_version },
+                    )
+
+                ingredientJoin
+                    .selectAll()
+                    .where { Ingredients.recipe_id eq recipeId }
+                    .map { row ->
+                        Ingredient(
+                            id = row[Ingredients.id],
+                            recipeId = row[Ingredients.recipe_id],
+                            bestVersion = row[Ingredients.best_version],
+                            notes = row[Ingredients.notes],
+                            createdAt = row[Ingredients.created_at],
+                            amount = row[IngredientDelta.amount],
+                            name = row[IngredientDelta.name],
+                        )
+                    }
+            }
+        val ingredientConceptCount =
+            Ingredients
                 .selectAll()
                 .where { Ingredients.recipe_id eq recipeId }
-                .map { row ->
-                    Ingredient(
-                        id = row[Ingredients.id],
-                        recipeId = row[Ingredients.recipe_id],
-                        bestVersion = row[Ingredients.best_version],
-                        notes = row[Ingredients.notes],
-                        createdAt = row[Ingredients.created_at],
-                        amount = row[IngredientDelta.amount],
-                        name = row[IngredientDelta.name],
-                    )
-                }
-        }
-        val ingredientConceptCount = Ingredients
-            .selectAll()
-            .where { Ingredients.recipe_id eq recipeId }
-            .count()
-        
+                .count()
+
         if (ingredients.size.toLong() != ingredientConceptCount) {
             throw DataIntegrityException(
-                "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId"
+                "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId",
             )
         }
-        
+
         return ingredients
     }
-    
+
     fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
-        val instructionJoin = Instructions.join(
-            InstructionDelta,
-            JoinType.INNER,
-            onColumn = Instructions.id,
-            otherColumn = InstructionDelta.instruction_id,
-            additionalConstraint = { InstructionDelta.version eq Instructions.best_version },
-        )
+        val instructionJoin =
+            Instructions.join(
+                InstructionDelta,
+                JoinType.INNER,
+                onColumn = Instructions.id,
+                otherColumn = InstructionDelta.instruction_id,
+                additionalConstraint = { InstructionDelta.version eq Instructions.best_version },
+            )
 
-        val instructions = instructionJoin
-            .selectAll()
-            .where { Instructions.recipe_id eq recipeId }
-            .map { row ->
-                Instruction(
-                    id = row[Instructions.id],
-                    recipeId = row[Instructions.recipe_id],
-                    bestVersion = row[Instructions.best_version],
-                    notes = row[Instructions.notes],
-                    createdAt = row[Instructions.created_at],
-                    description = row[InstructionDelta.description],
-                )
-            }
+        val instructions =
+            instructionJoin
+                .selectAll()
+                .where { Instructions.recipe_id eq recipeId }
+                .map { row ->
+                    Instruction(
+                        id = row[Instructions.id],
+                        recipeId = row[Instructions.recipe_id],
+                        bestVersion = row[Instructions.best_version],
+                        notes = row[Instructions.notes],
+                        createdAt = row[Instructions.created_at],
+                        description = row[InstructionDelta.description],
+                    )
+                }
 
-        val instructionConceptCount = Instructions
-            .selectAll()
-            .where { Instructions.recipe_id eq recipeId }
-            .count()
+        val instructionConceptCount =
+            Instructions
+                .selectAll()
+                .where { Instructions.recipe_id eq recipeId }
+                .count()
 
         if (instructions.size.toLong() != instructionConceptCount) {
             throw DataIntegrityException(
-                "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId"
+                "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId",
             )
         }
 
         return instructions
     }
 
-    override suspend fun listAll(): List<RecipeDetail> {
-        return transaction {
+    override suspend fun listAll(): List<RecipeDetail> =
+        transaction {
             Recipes
                 .selectAll()
                 .map { row ->
@@ -157,36 +164,37 @@ class RecipeRepositoryImpl : RecipeRepository {
                     )
                 }
         }
-    }
-    
+
     override suspend fun create(request: CreateRecipePayload): Recipe {
         val recipeId = Uuid.random()
         val createdAt = Instant.now()
-        
+
         return transaction {
-            val recipeStatement = Recipes.insert {
-                it[Recipes.id] = recipeId
-                it[Recipes.name] = request.name
-                it[Recipes.description] = request.description
-                it[Recipes.recipe_source] = request.recipeSource.orEmpty()
-                it[Recipes.tags] = request.tags.orEmpty()
-                it[Recipes.tools] = request.tools.orEmpty()
-                it[Recipes.created_at] = createdAt
-            }
+            val recipeStatement =
+                Recipes.insert {
+                    it[Recipes.id] = recipeId
+                    it[Recipes.name] = request.name
+                    it[Recipes.description] = request.description
+                    it[Recipes.recipe_source] = request.recipeSource.orEmpty()
+                    it[Recipes.tags] = request.tags.orEmpty()
+                    it[Recipes.tools] = request.tools.orEmpty()
+                    it[Recipes.created_at] = createdAt
+                }
 
             val ingredients = createIngredients(recipeId, request.ingredients)
             val instructions = createInstructions(recipeId, request.instructions)
-            
-            val details = RecipeDetail(
-                id = recipeId,
-                name = request.name,
-                description = request.description,
-                recipeSource = request.recipeSource,
-                tags = request.tags,
-                tools = request.tools,
-                createdAt = createdAt,
-                notes = null
-            )
+
+            val details =
+                RecipeDetail(
+                    id = recipeId,
+                    name = request.name,
+                    description = request.description,
+                    recipeSource = request.recipeSource,
+                    tags = request.tags,
+                    tools = request.tools,
+                    createdAt = createdAt,
+                    notes = null,
+                )
 
             Recipe(
                 id = recipeId,
@@ -197,17 +205,21 @@ class RecipeRepositoryImpl : RecipeRepository {
         }
     }
 
-    fun createIngredients(recipeId: Uuid, request: List<CreateIngredientPayload>): List<Ingredient> {
-        return request.map { ingredient ->
+    fun createIngredients(
+        recipeId: Uuid,
+        request: List<CreateIngredientPayload>,
+    ): List<Ingredient> =
+        request.map { ingredient ->
             val ingredientId = Uuid.random()
             val createdAt = Instant.now()
-            
-            val ingredientStatement = Ingredients.insert {
-                it[Ingredients.id] = ingredientId
-                it[Ingredients.recipe_id] = recipeId
-                it[Ingredients.best_version] = 1
-                it[Ingredients.created_at] = createdAt
-            }
+
+            val ingredientStatement =
+                Ingredients.insert {
+                    it[Ingredients.id] = ingredientId
+                    it[Ingredients.recipe_id] = recipeId
+                    it[Ingredients.best_version] = 1
+                    it[Ingredients.created_at] = createdAt
+                }
 
             IngredientDelta.insert {
                 it[IngredientDelta.ingredient_id] = ingredientId
@@ -227,19 +239,22 @@ class RecipeRepositoryImpl : RecipeRepository {
                 createdAt = ingredientStatement[Ingredients.created_at],
             )
         }
-    }
 
-    fun createInstructions(recipeId: Uuid, request: List<String>): List<Instruction> {
-        return request.map { description ->
+    fun createInstructions(
+        recipeId: Uuid,
+        request: List<String>,
+    ): List<Instruction> =
+        request.map { description ->
             val instructionId = Uuid.random()
             val createdAt = Instant.now()
-            
-            val instructionStatement = Instructions.insert {
-                it[Instructions.id] = instructionId
-                it[Instructions.recipe_id] = recipeId
-                it[Instructions.best_version] = 1
-                it[Instructions.created_at] = createdAt
-            }
+
+            val instructionStatement =
+                Instructions.insert {
+                    it[Instructions.id] = instructionId
+                    it[Instructions.recipe_id] = recipeId
+                    it[Instructions.best_version] = 1
+                    it[Instructions.created_at] = createdAt
+                }
 
             InstructionDelta.insert {
                 it[InstructionDelta.instruction_id] = instructionId
@@ -257,14 +272,17 @@ class RecipeRepositoryImpl : RecipeRepository {
                 description = description,
             )
         }
-    }
 
-    override suspend fun editRecipe(id: Uuid, request: EditRecipePayload): Recipe {
-        return transaction {
-            val existing = Recipes
-                .selectAll()
-                .where { Recipes.id eq id }
-                .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
+    override suspend fun editRecipe(
+        id: Uuid,
+        request: EditRecipePayload,
+    ): Recipe =
+        transaction {
+            val existing =
+                Recipes
+                    .selectAll()
+                    .where { Recipes.id eq id }
+                    .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
 
             // Only touches Recipes table columns — ingredients/instructions are untouched here
             Recipes.update({ Recipes.id eq id }) {
@@ -275,21 +293,23 @@ class RecipeRepositoryImpl : RecipeRepository {
                 request.tools?.let { tools -> it[Recipes.tools] = tools }
             }
 
-            val updatedRow = Recipes
-                .selectAll()
-                .where { Recipes.id eq id }
-                .single()
-                
-            val details = RecipeDetail(
-                id = updatedRow[Recipes.id],
-                name = updatedRow[Recipes.name],
-                description = updatedRow[Recipes.description],
-                createdAt = updatedRow[Recipes.created_at],
-                recipeSource = updatedRow[Recipes.recipe_source],
-                tags = updatedRow[Recipes.tags],
-                tools = updatedRow[Recipes.tools],
-                notes = updatedRow[Recipes.notes],
-            )
+            val updatedRow =
+                Recipes
+                    .selectAll()
+                    .where { Recipes.id eq id }
+                    .single()
+
+            val details =
+                RecipeDetail(
+                    id = updatedRow[Recipes.id],
+                    name = updatedRow[Recipes.name],
+                    description = updatedRow[Recipes.description],
+                    createdAt = updatedRow[Recipes.created_at],
+                    recipeSource = updatedRow[Recipes.recipe_source],
+                    tags = updatedRow[Recipes.tags],
+                    tools = updatedRow[Recipes.tools],
+                    notes = updatedRow[Recipes.notes],
+                )
 
             Recipe(
                 id = updatedRow[Recipes.id],
@@ -298,20 +318,24 @@ class RecipeRepositoryImpl : RecipeRepository {
                 instructions = getInstructionsForRecipe(id),
             )
         }
-    }
 
-    override suspend fun editIngredient(ingredientId: Uuid, request: EditIngredientPayload): Ingredient {
-        return transaction {
-            val ingredientRow = Ingredients
-                .selectAll()
-                .where { Ingredients.id eq ingredientId }
-                .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
+    override suspend fun editIngredient(
+        ingredientId: Uuid,
+        request: EditIngredientPayload,
+    ): Ingredient =
+        transaction {
+            val ingredientRow =
+                Ingredients
+                    .selectAll()
+                    .where { Ingredients.id eq ingredientId }
+                    .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
 
             val maxVersionExpr = IngredientDelta.version.max()
-            val highestVersion = IngredientDelta
-                .select(maxVersionExpr)
-                .where { IngredientDelta.ingredient_id eq ingredientId }
-                .single()[maxVersionExpr] ?: 0
+            val highestVersion =
+                IngredientDelta
+                    .select(maxVersionExpr)
+                    .where { IngredientDelta.ingredient_id eq ingredientId }
+                    .single()[maxVersionExpr] ?: 0
 
             val newVersion = highestVersion + 1
             val createdAt = Instant.now()
@@ -340,20 +364,24 @@ class RecipeRepositoryImpl : RecipeRepository {
                 name = request.name,
             )
         }
-    }
 
-    override suspend fun editInstruction(instructionId: Uuid, request: EditInstructionPayload): Instruction {
-        return transaction {
-            val instructionRow = Instructions
-                .selectAll()
-                .where { Instructions.id eq instructionId }
-                .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
+    override suspend fun editInstruction(
+        instructionId: Uuid,
+        request: EditInstructionPayload,
+    ): Instruction =
+        transaction {
+            val instructionRow =
+                Instructions
+                    .selectAll()
+                    .where { Instructions.id eq instructionId }
+                    .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
 
             val maxVersionExpr = InstructionDelta.version.max()
-            val highestVersion = InstructionDelta
-                .select(maxVersionExpr)
-                .where { InstructionDelta.instruction_id eq instructionId }
-                .single()[maxVersionExpr] ?: 0
+            val highestVersion =
+                InstructionDelta
+                    .select(maxVersionExpr)
+                    .where { InstructionDelta.instruction_id eq instructionId }
+                    .single()[maxVersionExpr] ?: 0
 
             val newVersion = highestVersion + 1
             val createdAt = Instant.now()
@@ -380,68 +408,77 @@ class RecipeRepositoryImpl : RecipeRepository {
                 description = request.description,
             )
         }
-    }
 
-    override suspend fun updateRecipeNotes(recipeId: Uuid, notes: String?) {
-        return transaction {
-            Recipes
-                .selectAll()
-                .where { Recipes.id eq recipeId }
-                .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+    override suspend fun updateRecipeNotes(
+        recipeId: Uuid,
+        notes: String?,
+    ) = transaction {
+        Recipes
+            .selectAll()
+            .where { Recipes.id eq recipeId }
+            .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
-            val updatedRows = Recipes.update({ Recipes.id eq recipeId }) {
+        val updatedRows =
+            Recipes.update({ Recipes.id eq recipeId }) {
                 it[Recipes.notes] = notes
             }
-        }
     }
 
-    override suspend fun updateIngredientNotes(ingredientId: Uuid, notes: String?) {
-        return transaction {
-            Ingredients
-                .selectAll()
-                .where { Ingredients.id eq ingredientId }
-                .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
-                
-            val updatedRows = Ingredients.update({ Ingredients.id eq ingredientId }) {
+    override suspend fun updateIngredientNotes(
+        ingredientId: Uuid,
+        notes: String?,
+    ) = transaction {
+        Ingredients
+            .selectAll()
+            .where { Ingredients.id eq ingredientId }
+            .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
+
+        val updatedRows =
+            Ingredients.update({ Ingredients.id eq ingredientId }) {
                 it[Ingredients.notes] = notes
             }
-        }
     }
 
-    override suspend fun updateInstructionNotes(instructionId: Uuid, notes: String?) {
-        return transaction {
-            Instructions
-                .selectAll()
-                .where { Instructions.id eq instructionId }
-                .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
-                
-            val updatedRows = Instructions.update({ Instructions.id eq instructionId }) {
+    override suspend fun updateInstructionNotes(
+        instructionId: Uuid,
+        notes: String?,
+    ) = transaction {
+        Instructions
+            .selectAll()
+            .where { Instructions.id eq instructionId }
+            .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
+
+        val updatedRows =
+            Instructions.update({ Instructions.id eq instructionId }) {
                 it[Instructions.notes] = notes
             }
-        }
     }
-    
-    override suspend fun deleteRecipe(id: Uuid) {
-        return transaction {
-            val existing = Recipes
-                .selectAll()
-                .where { Recipes.id eq id }
-                .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
 
-            val ingredientIds = Ingredients
-                .selectAll()
-                .where { Ingredients.recipe_id eq id }
-                .map { it[Ingredients.id] }
+    override suspend fun deleteRecipe(id: Uuid) =
+        transaction {
+            val existing =
+                Recipes
+                    .selectAll()
+                    .where { Recipes.id eq id }
+                    .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
 
-            val instructionIds = Instructions
-                .selectAll()
-                .where { Instructions.recipe_id eq id }
-                .map { it[Instructions.id] }
+            val ingredientIds =
+                Ingredients
+                    .selectAll()
+                    .where { Ingredients.recipe_id eq id }
+                    .map { it[Ingredients.id] }
 
-            val bakeIds = Bakes
-                .selectAll()
-                .where { Bakes.recipe_id eq id }
-                .map { it[Bakes.id] }
+            val instructionIds =
+                Instructions
+                    .selectAll()
+                    .where { Instructions.recipe_id eq id }
+                    .map { it[Instructions.id] }
+
+            val bakeIds =
+                Bakes
+                    .selectAll()
+                    .where { Bakes.recipe_id eq id }
+                    .map { it[Bakes.id] }
 
             if (bakeIds.isNotEmpty()) {
                 BakeIngredients.deleteWhere { BakeIngredients.bake_id inList bakeIds }
@@ -461,5 +498,4 @@ class RecipeRepositoryImpl : RecipeRepository {
 
             Recipes.deleteWhere { Recipes.id eq id }
         }
-    }
 }

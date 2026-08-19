@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(ktorLibs.plugins.ktor)
     kotlin("plugin.serialization") version "2.4.0"
+    id("dev.detekt") version ("2.0.0-alpha.6")
+    id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
 }
 
 group = "com.bakingbuddy"
@@ -28,7 +30,7 @@ dependencies {
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 
     implementation("io.ktor:ktor-server-openapi:3.4.0")
-    implementation("io.ktor:ktor-server-routing-openapi:3.4.0") 
+    implementation("io.ktor:ktor-server-routing-openapi:3.4.0")
 
     implementation("org.jetbrains.exposed:exposed-core:1.3.1")
     implementation("org.jetbrains.exposed:exposed-jdbc:1.3.1")
@@ -45,6 +47,15 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-content-negotiation")
     testImplementation("io.ktor:ktor-serialization-kotlinx-json")
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+}
+
+tasks.named("check") {
+    dependsOn("detekt")
 }
 
 tasks.test {

@@ -13,5 +13,5 @@ data class Ingredient(
     val notes: String?,
     @Serializable(with = InstantSerializer::class) val createdAt: Instant,
     val amount: String,
-    val name: String
+    val name: String,
 )

@@ -10,12 +10,13 @@ import kotlinx.serialization.json.JsonNamingStrategy
 
 @OptIn(ExperimentalSerializationApi::class)
 fun Application.configureSerialization() {
-    val json = Json {
-        namingStrategy = JsonNamingStrategy.SnakeCase
-        exceptionsWithDebugInfo = true
-        prettyPrint = true
-    }
-    
+    val json =
+        Json {
+            namingStrategy = JsonNamingStrategy.SnakeCase
+            exceptionsWithDebugInfo = true
+            prettyPrint = true
+        }
+
     install(ContentNegotiation) {
         json(json)
     }

@@ -9,7 +9,7 @@ fun Route.healthRoutes() {
     get("/api/health") {
         call.respond(
             HttpStatusCode.OK,
-            mapOf("status" to "ok")
+            mapOf("status" to "ok"),
         )
     }
 }

@@ -6,7 +6,6 @@ import com.bakingbuddy.api.errors.ApiErrorResponse
 import com.bakingbuddy.api.errors.ApiException
 import com.bakingbuddy.api.errors.ValidationException
 import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.ContentConvertException
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.ContentTransformationException
@@ -22,11 +21,11 @@ fun Application.configureStatusPages() {
             call.respond(
                 HttpStatusCode.InternalServerError,
                 mapOf(
-                    "error" to (cause.message ?: "Unknown error")
-                )
+                    "error" to (cause.message ?: "Unknown error"),
+                ),
             )
         }
-    
+
         exception<ContentTransformationException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,
@@ -40,19 +39,22 @@ fun Application.configureStatusPages() {
             )
         }
         exception<ApiException> { call, cause ->
-            val body = when (cause) {
-                is ValidationException -> ApiErrorBody(
-                    code = cause.code,
-                    message = cause.message,
-                    fieldErrors = cause.fieldErrors,
-                    details = cause.details
-                )
-                else -> ApiErrorBody(
-                    code = cause.code,
-                    message = cause.message,
-                    details = cause.details
-                )
-            }
+            val body =
+                when (cause) {
+                    is ValidationException ->
+                        ApiErrorBody(
+                            code = cause.code,
+                            message = cause.message,
+                            fieldErrors = cause.fieldErrors,
+                            details = cause.details,
+                        )
+                    else ->
+                        ApiErrorBody(
+                            code = cause.code,
+                            message = cause.message,
+                            details = cause.details,
+                        )
+                }
             call.respond(cause.statusCode, ApiErrorResponse(body))
         }
 
@@ -66,11 +68,12 @@ fun Application.configureStatusPages() {
                 ApiErrorResponse(
                     ApiErrorBody(
                         code = ApiErrorCode.INTERNAL_ERROR,
-                        message = "An unexpected error occurred"
-                    )
-                )            )
+                        message = "An unexpected error occurred",
+                    ),
+                ),
+            )
         }
-        
+
         exception<io.ktor.server.plugins.BadRequestException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,

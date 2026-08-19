@@ -1,8 +1,6 @@
 package com.bakingbuddy.models.bakes
 
-import com.bakingbuddy.serializers.InstantSerializer
 import kotlinx.serialization.Serializable
-import java.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable

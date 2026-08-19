@@ -1,7 +1,6 @@
 package com.bakingbuddy.database
 
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.TextColumnType
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.timestamp
 

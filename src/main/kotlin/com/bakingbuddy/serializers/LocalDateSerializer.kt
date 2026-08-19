@@ -12,11 +12,12 @@ object LocalDateSerializer : KSerializer<LocalDate> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("LocalDate", PrimitiveKind.STRING)
 
-    override fun serialize(encoder: Encoder, value: LocalDate) {
+    override fun serialize(
+        encoder: Encoder,
+        value: LocalDate,
+    ) {
         encoder.encodeString(value.toString()) // ISO-8601: "2026-08-14"
     }
 
-    override fun deserialize(decoder: Decoder): LocalDate {
-        return LocalDate.parse(decoder.decodeString())
-    }
+    override fun deserialize(decoder: Decoder): LocalDate = LocalDate.parse(decoder.decodeString())
 }

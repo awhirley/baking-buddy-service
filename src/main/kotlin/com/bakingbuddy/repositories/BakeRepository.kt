@@ -7,12 +7,12 @@ import kotlin.uuid.Uuid
 
 interface BakeRepository {
     suspend fun createBake(recipeId: Uuid): Bake
-    
+
     suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake>
-    
+
     suspend fun listBakes(recipeId: Uuid): List<BakeDetail>
-    
+
     suspend fun updateBake(payload: UpdateBakePayload)
-    
+
     suspend fun deleteBake(id: Uuid)
 }

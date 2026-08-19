@@ -12,7 +12,6 @@ data class UpdateBakePayload(
     val results: String? = null,
     val elevation: Int? = null,
     val notes: String? = null,
-    
     // TODO: Support these in the repsitory layer
     val ingredientVersions: List<BakeIngredientPayload>? = null,
     val instructionVersions: List<BakeInstructionPayload>? = null,

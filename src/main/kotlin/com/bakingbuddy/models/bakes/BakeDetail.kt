@@ -3,8 +3,8 @@ package com.bakingbuddy.models.bakes
 import com.bakingbuddy.serializers.InstantSerializer
 import com.bakingbuddy.serializers.LocalDateSerializer
 import kotlinx.serialization.Serializable
-import java.time.LocalDate
 import java.time.Instant
+import java.time.LocalDate
 import kotlin.uuid.Uuid
 
 @Serializable

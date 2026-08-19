@@ -14,7 +14,6 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
-    
     val recipeService = RecipeService()
     val deltaService = DeltaService()
     val bakeService = BakeService()

@@ -6,6 +6,6 @@ import kotlin.uuid.Uuid
 
 interface DeltaRepository {
     suspend fun getIngredientHistory(id: Uuid): IngredientHistory
-      
+
     suspend fun getInstructionHistory(id: Uuid): InstructionHistory
 }

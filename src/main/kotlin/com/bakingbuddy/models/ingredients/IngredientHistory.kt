@@ -8,5 +8,5 @@ data class IngredientHistory(
     val id: Uuid,
     val recipeId: Uuid,
     val bestVersion: Int,
-    val history: List<IngredientDeltaEntry>
+    val history: List<IngredientDeltaEntry>,
 )
