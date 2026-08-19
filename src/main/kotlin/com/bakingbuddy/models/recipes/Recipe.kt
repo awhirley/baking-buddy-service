@@ -7,8 +7,8 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class Recipe(
-    val id: Uuid,
-    val details: RecipeDetail,
-    val ingredients: List<Ingredient>,
-    val instructions: List<Instruction>,
+  val id: Uuid,
+  val details: RecipeDetail,
+  val ingredients: List<Ingredient>,
+  val instructions: List<Instruction>,
 )

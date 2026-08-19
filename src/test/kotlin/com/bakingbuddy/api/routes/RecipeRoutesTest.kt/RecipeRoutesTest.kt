@@ -51,685 +51,685 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientCon
  */
 
 private fun ApplicationTestBuilder.setupTestApp(recipeService: RecipeService): HttpClient {
-    application {
-        install(ContentNegotiation) { json() }
-        configureStatusPages()
-        routing { recipeRoutes(recipeService) }
-    }
-    // The default `client` provided by testApplication has no JSON support --
-    // it needs its own ContentNegotiation to serialize setBody(someDataClass).
-    return createClient {
-        install(ClientContentNegotiation) { json() }
-    }
+  application {
+    install(ContentNegotiation) { json() }
+    configureStatusPages()
+    routing { recipeRoutes(recipeService) }
+  }
+  // The default `client` provided by testApplication has no JSON support --
+  // it needs its own ContentNegotiation to serialize setBody(someDataClass).
+  return createClient {
+    install(ClientContentNegotiation) { json() }
+  }
 }
 
 private fun sampleRecipe(id: Uuid = Uuid.random()): Recipe =
-    Recipe(
+  Recipe(
+    id = id,
+    details =
+      RecipeDetail(
         id = id,
-        details =
-            RecipeDetail(
-                id = id,
-                name = "Sourdough Loaf",
-                description = "Basic sourdough",
-                recipeSource = null,
-                tags = null,
-                tools = null,
-                notes = null,
-                createdAt = Instant.now(),
-            ),
-        ingredients = emptyList(),
-        instructions = emptyList(),
-    )
+        name = "Sourdough Loaf",
+        description = "Basic sourdough",
+        recipeSource = null,
+        tags = null,
+        tools = null,
+        notes = null,
+        createdAt = Instant.now(),
+      ),
+    ingredients = emptyList(),
+    instructions = emptyList(),
+  )
 
 private fun sampleRecipeDetail(id: Uuid = Uuid.random()): RecipeDetail =
-    RecipeDetail(
-        id = id,
-        name = "Sourdough Loaf",
-        description = "Basic sourdough",
-        recipeSource = null,
-        tags = null,
-        tools = null,
-        notes = null,
-        createdAt = Instant.now(),
-    )
+  RecipeDetail(
+    id = id,
+    name = "Sourdough Loaf",
+    description = "Basic sourdough",
+    recipeSource = null,
+    tags = null,
+    tools = null,
+    notes = null,
+    createdAt = Instant.now(),
+  )
 
 private fun sampleIngredient(
-    id: Uuid = Uuid.random(),
-    recipeId: Uuid = Uuid.random(),
+  id: Uuid = Uuid.random(),
+  recipeId: Uuid = Uuid.random(),
 ): Ingredient =
-    Ingredient(
-        id = id,
-        recipeId = recipeId,
-        bestVersion = 1,
-        notes = null,
-        createdAt = Instant.now(),
-        amount = "500g",
-        name = "Flour",
-    )
+  Ingredient(
+    id = id,
+    recipeId = recipeId,
+    bestVersion = 1,
+    notes = null,
+    createdAt = Instant.now(),
+    amount = "500g",
+    name = "Flour",
+  )
 
 private fun sampleInstruction(
-    id: Uuid = Uuid.random(),
-    recipeId: Uuid = Uuid.random(),
+  id: Uuid = Uuid.random(),
+  recipeId: Uuid = Uuid.random(),
 ): Instruction =
-    Instruction(
-        id = id,
-        recipeId = recipeId,
-        bestVersion = 1,
-        notes = null,
-        createdAt = Instant.now(),
-        description = "Mix and knead",
-    )
+  Instruction(
+    id = id,
+    recipeId = recipeId,
+    bestVersion = 1,
+    notes = null,
+    createdAt = Instant.now(),
+    description = "Mix and knead",
+  )
 
 private fun validCreateRecipePayload() =
-    CreateRecipePayload(
-        name = "Sourdough Loaf",
-        description = "Basic sourdough",
-        recipeSource = null,
-        tags = null,
-        tools = null,
-        ingredients = listOf(CreateIngredientPayload(name = "Flour", amount = "500g")),
-        instructions = listOf("Mix and knead"),
-    )
+  CreateRecipePayload(
+    name = "Sourdough Loaf",
+    description = "Basic sourdough",
+    recipeSource = null,
+    tags = null,
+    tools = null,
+    ingredients = listOf(CreateIngredientPayload(name = "Flour", amount = "500g")),
+    instructions = listOf("Mix and knead"),
+  )
 
 class RecipeRoutesTest {
-    // ---------------------------------------------------------------
-    // GET /api/recipes/{id}
-    // ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // GET /api/recipes/{id}
+  // ---------------------------------------------------------------
 
-    @Test
-    fun `GET recipe by id returns 200 when found`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val recipe = sampleRecipe()
-            coEvery { service.getRecipe(recipe.id) } returns recipe
-            val client = setupTestApp(service)
+  @Test
+  fun `GET recipe by id returns 200 when found`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val recipe = sampleRecipe()
+      coEvery { service.getRecipe(recipe.id) } returns recipe
+      val client = setupTestApp(service)
 
-            val response = client.get("/api/recipes/${recipe.id}")
+      val response = client.get("/api/recipes/${recipe.id}")
 
-            response.status shouldBe HttpStatusCode.OK
+      response.status shouldBe HttpStatusCode.OK
+    }
+
+  @Test
+  fun `GET recipe by id returns 404 when service returns null`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      coEvery { service.getRecipe(id) } returns null
+      val client = setupTestApp(service)
+
+      val response = client.get("/api/recipes/$id")
+
+      response.status shouldBe HttpStatusCode.NotFound
+      response.bodyAsText() shouldContain id.toString()
+    }
+
+  @Test
+  fun `GET recipe by id returns 400 for a malformed uuid and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
+
+      val response = client.get("/api/recipes/not-a-uuid")
+
+      response.status shouldBe HttpStatusCode.BadRequest
+      coVerify(exactly = 0) { service.getRecipe(any()) }
+    }
+
+  // ---------------------------------------------------------------
+  // GET /api/recipes
+  // ---------------------------------------------------------------
+
+  @Test
+  fun `GET recipes returns 200 with the service's list`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      coEvery { service.listRecipes() } returns listOf(sampleRecipeDetail(), sampleRecipeDetail())
+      val client = setupTestApp(service)
+
+      val response = client.get("/api/recipes")
+
+      response.status shouldBe HttpStatusCode.OK
+    }
+
+  // ---------------------------------------------------------------
+  // POST /api/recipes
+  // ---------------------------------------------------------------
+
+  @Test
+  fun `POST recipe with a valid payload returns 201 and calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val payload = validCreateRecipePayload()
+      coEvery { service.createRecipe(payload) } returns sampleRecipe()
+      val client = setupTestApp(service)
+
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(payload)
         }
 
-    @Test
-    fun `GET recipe by id returns 404 when service returns null`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            coEvery { service.getRecipe(id) } returns null
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.Created
+      coVerify(exactly = 1) { service.createRecipe(payload) }
+    }
 
-            val response = client.get("/api/recipes/$id")
+  @Test
+  fun `POST recipe with malformed JSON returns 400 Invalid request body`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.NotFound
-            response.bodyAsText() shouldContain id.toString()
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody("{ not valid json")
         }
 
-    @Test
-    fun `GET recipe by id returns 400 for a malformed uuid and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "Invalid request body"
+    }
 
-            val response = client.get("/api/recipes/not-a-uuid")
+  @Test
+  fun `POST recipe with a blank name returns 400 with a field error and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            coVerify(exactly = 0) { service.getRecipe(any()) }
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(validCreateRecipePayload().copy(name = "   "))
         }
 
-    // ---------------------------------------------------------------
-    // GET /api/recipes
-    // ---------------------------------------------------------------
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"name\""
+      coVerify(exactly = 0) { service.createRecipe(any()) }
+    }
 
-    @Test
-    fun `GET recipes returns 200 with the service's list`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            coEvery { service.listRecipes() } returns listOf(sampleRecipeDetail(), sampleRecipeDetail())
-            val client = setupTestApp(service)
+  @Test
+  fun `POST recipe with no ingredients returns a field error for ingredients`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            val response = client.get("/api/recipes")
-
-            response.status shouldBe HttpStatusCode.OK
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(validCreateRecipePayload().copy(ingredients = emptyList()))
         }
 
-    // ---------------------------------------------------------------
-    // POST /api/recipes
-    // ---------------------------------------------------------------
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"ingredients\""
+    }
 
-    @Test
-    fun `POST recipe with a valid payload returns 201 and calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val payload = validCreateRecipePayload()
-            coEvery { service.createRecipe(payload) } returns sampleRecipe()
-            val client = setupTestApp(service)
+  @Test
+  fun `POST recipe with no instructions returns a field error for instructions`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
-                }
-
-            response.status shouldBe HttpStatusCode.Created
-            coVerify(exactly = 1) { service.createRecipe(payload) }
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(validCreateRecipePayload().copy(instructions = emptyList()))
         }
 
-    @Test
-    fun `POST recipe with malformed JSON returns 400 Invalid request body`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"instructions\""
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody("{ not valid json")
-                }
+  @Test
+  fun `POST recipe with a blank ingredient name reports an indexed field path`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "Invalid request body"
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(
+            validCreateRecipePayload().copy(
+              ingredients = listOf(CreateIngredientPayload(name = "  ", amount = "500g")),
+            ),
+          )
         }
 
-    @Test
-    fun `POST recipe with a blank name returns 400 with a field error and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"ingredients[0].name\""
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(validCreateRecipePayload().copy(name = "   "))
-                }
+  @Test
+  fun `POST recipe with a blank ingredient amount reports an indexed field path`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"name\""
-            coVerify(exactly = 0) { service.createRecipe(any()) }
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(
+            validCreateRecipePayload().copy(
+              ingredients = listOf(CreateIngredientPayload(name = "Flour", amount = " ")),
+            ),
+          )
         }
 
-    @Test
-    fun `POST recipe with no ingredients returns a field error for ingredients`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"ingredients[0].amount\""
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(validCreateRecipePayload().copy(ingredients = emptyList()))
-                }
+  @Test
+  fun `POST recipe with a blank instruction reports an indexed field path`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"ingredients\""
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(validCreateRecipePayload().copy(instructions = listOf("   ")))
         }
 
-    @Test
-    fun `POST recipe with no instructions returns a field error for instructions`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"instructions[0]\""
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(validCreateRecipePayload().copy(instructions = emptyList()))
-                }
+  @Test
+  fun `POST recipe with a blank tag reports an indexed field path`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"instructions\""
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(validCreateRecipePayload().copy(tags = listOf("sourdough", "  ")))
         }
 
-    @Test
-    fun `POST recipe with a blank ingredient name reports an indexed field path`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"tags[1]\""
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        validCreateRecipePayload().copy(
-                            ingredients = listOf(CreateIngredientPayload(name = "  ", amount = "500g")),
-                        ),
-                    )
-                }
+  @Test
+  fun `POST recipe with null tags does not trigger a tags validation error`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val payload = validCreateRecipePayload().copy(tags = null)
+      coEvery { service.createRecipe(payload) } returns sampleRecipe()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"ingredients[0].name\""
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(payload)
         }
 
-    @Test
-    fun `POST recipe with a blank ingredient amount reports an indexed field path`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.Created
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        validCreateRecipePayload().copy(
-                            ingredients = listOf(CreateIngredientPayload(name = "Flour", amount = " ")),
-                        ),
-                    )
-                }
+  @Test
+  fun `POST recipe collects multiple field errors in a single response`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"ingredients[0].amount\""
+      val response =
+        client.post("/api/recipes") {
+          contentType(ContentType.Application.Json)
+          setBody(
+            validCreateRecipePayload().copy(
+              name = "  ",
+              description = "  ",
+              ingredients = emptyList(),
+            ),
+          )
         }
 
-    @Test
-    fun `POST recipe with a blank instruction reports an indexed field path`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      val body = response.bodyAsText()
+      body shouldContain "\"field\":\"name\""
+      body shouldContain "\"field\":\"description\""
+      body shouldContain "\"field\":\"ingredients\""
+      coVerify(exactly = 0) { service.createRecipe(any()) }
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(validCreateRecipePayload().copy(instructions = listOf("   ")))
-                }
+  // ---------------------------------------------------------------
+  // PATCH /api/recipes/{id}
+  // ---------------------------------------------------------------
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"instructions[0]\""
+  @Test
+  fun `PATCH recipe with a valid payload calls editRecipe with the parsed body`() =
+    testApplication {
+      // KNOWN BUG: the route parses `payload` via call.receive(), validates it,
+      // then calls editRecipe(uuid, call.receive()) -- a SECOND receive() on an
+      // already-consumed request body. That's not a ContentTransformationException,
+      // so it isn't caught by the dedicated 400 handler -- it falls through to the
+      // catch-all Throwable handler and comes back as 500, not 200. This test
+      // documents the intended behavior and will fail until editRecipe(uuid, payload)
+      // reuses the already-parsed `payload` variable.
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      val payload = EditRecipePayload(name = "New Name")
+      coEvery { service.editRecipe(id, payload) } returns sampleRecipe(id)
+      val client = setupTestApp(service)
+
+      val response =
+        client.patch("/api/recipes/$id") {
+          contentType(ContentType.Application.Json)
+          setBody(payload)
         }
 
-    @Test
-    fun `POST recipe with a blank tag reports an indexed field path`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.OK
+      coVerify(exactly = 1) { service.editRecipe(id, payload) }
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(validCreateRecipePayload().copy(tags = listOf("sourdough", "  ")))
-                }
+  @Test
+  fun `PATCH recipe with a malformed uuid returns 400 and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"tags[1]\""
+      val response =
+        client.patch("/api/recipes/not-a-uuid") {
+          contentType(ContentType.Application.Json)
+          setBody(EditRecipePayload(name = "New Name"))
         }
 
-    @Test
-    fun `POST recipe with null tags does not trigger a tags validation error`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val payload = validCreateRecipePayload().copy(tags = null)
-            coEvery { service.createRecipe(payload) } returns sampleRecipe()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      coVerify(exactly = 0) { service.editRecipe(any(), any()) }
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
-                }
+  @Test
+  fun `PATCH recipe with a blank name (when present) returns a field error`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.Created
+      val response =
+        client.patch("/api/recipes/${Uuid.random()}") {
+          contentType(ContentType.Application.Json)
+          setBody(EditRecipePayload(name = "   "))
         }
 
-    @Test
-    fun `POST recipe collects multiple field errors in a single response`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"name\""
+    }
 
-            val response =
-                client.post("/api/recipes") {
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        validCreateRecipePayload().copy(
-                            name = "  ",
-                            description = "  ",
-                            ingredients = emptyList(),
-                        ),
-                    )
-                }
+  // ---------------------------------------------------------------
+  // PATCH /api/ingredients/{id}
+  // ---------------------------------------------------------------
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            val body = response.bodyAsText()
-            body shouldContain "\"field\":\"name\""
-            body shouldContain "\"field\":\"description\""
-            body shouldContain "\"field\":\"ingredients\""
-            coVerify(exactly = 0) { service.createRecipe(any()) }
+  @Test
+  fun `PATCH ingredient with a valid payload returns 200`() =
+    testApplication {
+      // Same double-receive() bug as the recipe route -- see note above.
+      // Will 500 rather than 200 until fixed.
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      val payload = EditIngredientPayload(name = "Flour", amount = "500g")
+      coEvery { service.editIngredient(id, payload) } returns sampleIngredient(id)
+      val client = setupTestApp(service)
+
+      val response =
+        client.patch("/api/ingredients/$id") {
+          contentType(ContentType.Application.Json)
+          setBody(payload)
         }
 
-    // ---------------------------------------------------------------
-    // PATCH /api/recipes/{id}
-    // ---------------------------------------------------------------
+      response.status shouldBe HttpStatusCode.OK
+      coVerify(exactly = 1) { service.editIngredient(id, payload) }
+    }
 
-    @Test
-    fun `PATCH recipe with a valid payload calls editRecipe with the parsed body`() =
-        testApplication {
-            // KNOWN BUG: the route parses `payload` via call.receive(), validates it,
-            // then calls editRecipe(uuid, call.receive()) -- a SECOND receive() on an
-            // already-consumed request body. That's not a ContentTransformationException,
-            // so it isn't caught by the dedicated 400 handler -- it falls through to the
-            // catch-all Throwable handler and comes back as 500, not 200. This test
-            // documents the intended behavior and will fail until editRecipe(uuid, payload)
-            // reuses the already-parsed `payload` variable.
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            val payload = EditRecipePayload(name = "New Name")
-            coEvery { service.editRecipe(id, payload) } returns sampleRecipe(id)
-            val client = setupTestApp(service)
+  @Test
+  fun `PATCH ingredient with a blank amount returns a field error and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            val response =
-                client.patch("/api/recipes/$id") {
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
-                }
-
-            response.status shouldBe HttpStatusCode.OK
-            coVerify(exactly = 1) { service.editRecipe(id, payload) }
+      val response =
+        client.patch("/api/ingredients/${Uuid.random()}") {
+          contentType(ContentType.Application.Json)
+          setBody(EditIngredientPayload(name = "Flour", amount = "  "))
         }
 
-    @Test
-    fun `PATCH recipe with a malformed uuid returns 400 and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"amount\""
+      coVerify(exactly = 0) { service.editIngredient(any(), any()) }
+    }
 
-            val response =
-                client.patch("/api/recipes/not-a-uuid") {
-                    contentType(ContentType.Application.Json)
-                    setBody(EditRecipePayload(name = "New Name"))
-                }
+  @Test
+  fun `PATCH ingredient with a blank name returns a field error`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            coVerify(exactly = 0) { service.editRecipe(any(), any()) }
+      val response =
+        client.patch("/api/ingredients/${Uuid.random()}") {
+          contentType(ContentType.Application.Json)
+          setBody(EditIngredientPayload(name = "  ", amount = "500g"))
         }
 
-    @Test
-    fun `PATCH recipe with a blank name (when present) returns a field error`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"name\""
+    }
 
-            val response =
-                client.patch("/api/recipes/${Uuid.random()}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(EditRecipePayload(name = "   "))
-                }
+  @Test
+  fun `PATCH ingredient with a malformed uuid returns 400`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"name\""
+      val response =
+        client.patch("/api/ingredients/not-a-uuid") {
+          contentType(ContentType.Application.Json)
+          setBody(EditIngredientPayload(name = "Flour", amount = "500g"))
         }
 
-    // ---------------------------------------------------------------
-    // PATCH /api/ingredients/{id}
-    // ---------------------------------------------------------------
+      response.status shouldBe HttpStatusCode.BadRequest
+    }
 
-    @Test
-    fun `PATCH ingredient with a valid payload returns 200`() =
-        testApplication {
-            // Same double-receive() bug as the recipe route -- see note above.
-            // Will 500 rather than 200 until fixed.
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            val payload = EditIngredientPayload(name = "Flour", amount = "500g")
-            coEvery { service.editIngredient(id, payload) } returns sampleIngredient(id)
-            val client = setupTestApp(service)
+  // ---------------------------------------------------------------
+  // PATCH /api/instructions/{id}
+  // ---------------------------------------------------------------
 
-            val response =
-                client.patch("/api/ingredients/$id") {
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
-                }
+  @Test
+  fun `PATCH instruction with a valid payload returns 200`() =
+    testApplication {
+      // Same double-receive() bug -- see note on the recipe PATCH test.
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      val payload = EditInstructionPayload(description = "Mix, knead, and rest")
+      coEvery { service.editInstruction(id, payload) } returns sampleInstruction(id)
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.OK
-            coVerify(exactly = 1) { service.editIngredient(id, payload) }
+      val response =
+        client.patch("/api/instructions/$id") {
+          contentType(ContentType.Application.Json)
+          setBody(payload)
         }
 
-    @Test
-    fun `PATCH ingredient with a blank amount returns a field error and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.OK
+      coVerify(exactly = 1) { service.editInstruction(id, payload) }
+    }
 
-            val response =
-                client.patch("/api/ingredients/${Uuid.random()}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(EditIngredientPayload(name = "Flour", amount = "  "))
-                }
+  @Test
+  fun `PATCH instruction with a blank description returns a field error and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"amount\""
-            coVerify(exactly = 0) { service.editIngredient(any(), any()) }
+      val response =
+        client.patch("/api/instructions/${Uuid.random()}") {
+          contentType(ContentType.Application.Json)
+          setBody(EditInstructionPayload(description = "   "))
         }
 
-    @Test
-    fun `PATCH ingredient with a blank name returns a field error`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      response.bodyAsText() shouldContain "\"field\":\"description\""
+      coVerify(exactly = 0) { service.editInstruction(any(), any()) }
+    }
 
-            val response =
-                client.patch("/api/ingredients/${Uuid.random()}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(EditIngredientPayload(name = "  ", amount = "500g"))
-                }
+  // ---------------------------------------------------------------
+  // PATCH /api/recipes/notes/{id}, /api/ingredients/notes/{id}, /api/instructions/notes/{id}
+  // These routes have no validate{} block -- notes are optional free text,
+  // so uuid parsing is the only real "business logic" to test. The routes
+  // are also a bit unusual: updateRecipeNotes/updateIngredientNotes/
+  // updateInstructionNotes return Unit, but the route still does
+  // `val recipe = recipeService.updateRecipeNotes(...)` followed by
+  // `call.respond(recipe)` -- so a successful request responds 200 with
+  // an empty JSON body ("{}"), not the updated resource. Flagging this
+  // as a likely design gap rather than fixing it here.
+  // ---------------------------------------------------------------
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"name\""
+  @Test
+  fun `PATCH recipe notes with a valid body calls the service and returns 204`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      coEvery { service.updateRecipeNotes(id, "Great bake!") } returns Unit
+      val client = setupTestApp(service)
+
+      val response =
+        client.patch("/api/recipes/notes/$id") {
+          contentType(ContentType.Application.Json)
+          setBody("Great bake!")
         }
 
-    @Test
-    fun `PATCH ingredient with a malformed uuid returns 400`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.NoContent
+      coVerify(exactly = 1) { service.updateRecipeNotes(id, "Great bake!") }
+    }
 
-            val response =
-                client.patch("/api/ingredients/not-a-uuid") {
-                    contentType(ContentType.Application.Json)
-                    setBody(EditIngredientPayload(name = "Flour", amount = "500g"))
-                }
+  @Disabled("Temporarily skipped: Determining how to handle deleting notes")
+  @Test
+  fun `PATCH recipe notes with a null body clears the notes`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      val notesSlot = slot<String?>()
+      coEvery { service.updateRecipeNotes(id, captureNullable(notesSlot)) } returns Unit
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
+      val response =
+        client.patch("/api/recipes/notes/$id") {
+          contentType(ContentType.Application.Json)
+          setBody<String?>(null)
         }
 
-    // ---------------------------------------------------------------
-    // PATCH /api/instructions/{id}
-    // ---------------------------------------------------------------
+      response.status shouldBe HttpStatusCode.NoContent
+      notesSlot.captured shouldBe null
+    }
 
-    @Test
-    fun `PATCH instruction with a valid payload returns 200`() =
-        testApplication {
-            // Same double-receive() bug -- see note on the recipe PATCH test.
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            val payload = EditInstructionPayload(description = "Mix, knead, and rest")
-            coEvery { service.editInstruction(id, payload) } returns sampleInstruction(id)
-            val client = setupTestApp(service)
+  @Test
+  fun `PATCH recipe notes with a malformed uuid returns 400 and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            val response =
-                client.patch("/api/instructions/$id") {
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
-                }
-
-            response.status shouldBe HttpStatusCode.OK
-            coVerify(exactly = 1) { service.editInstruction(id, payload) }
+      val response =
+        client.patch("/api/recipes/notes/not-a-uuid") {
+          contentType(ContentType.Application.Json)
+          setBody("Great bake!")
         }
 
-    @Test
-    fun `PATCH instruction with a blank description returns a field error and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      coVerify(exactly = 0) { service.updateRecipeNotes(any(), any()) }
+    }
 
-            val response =
-                client.patch("/api/instructions/${Uuid.random()}") {
-                    contentType(ContentType.Application.Json)
-                    setBody(EditInstructionPayload(description = "   "))
-                }
+  @Test
+  fun `PATCH ingredient notes with a valid body calls the service and returns 204`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      coEvery { service.updateIngredientNotes(id, "Reduce to 480g next time") } returns Unit
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            response.bodyAsText() shouldContain "\"field\":\"description\""
-            coVerify(exactly = 0) { service.editInstruction(any(), any()) }
+      val response =
+        client.patch("/api/ingredients/notes/$id") {
+          contentType(ContentType.Application.Json)
+          setBody("Reduce to 480g next time")
         }
 
-    // ---------------------------------------------------------------
-    // PATCH /api/recipes/notes/{id}, /api/ingredients/notes/{id}, /api/instructions/notes/{id}
-    // These routes have no validate{} block -- notes are optional free text,
-    // so uuid parsing is the only real "business logic" to test. The routes
-    // are also a bit unusual: updateRecipeNotes/updateIngredientNotes/
-    // updateInstructionNotes return Unit, but the route still does
-    // `val recipe = recipeService.updateRecipeNotes(...)` followed by
-    // `call.respond(recipe)` -- so a successful request responds 200 with
-    // an empty JSON body ("{}"), not the updated resource. Flagging this
-    // as a likely design gap rather than fixing it here.
-    // ---------------------------------------------------------------
+      response.status shouldBe HttpStatusCode.NoContent
+      coVerify(exactly = 1) { service.updateIngredientNotes(id, "Reduce to 480g next time") }
+    }
 
-    @Test
-    fun `PATCH recipe notes with a valid body calls the service and returns 204`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            coEvery { service.updateRecipeNotes(id, "Great bake!") } returns Unit
-            val client = setupTestApp(service)
+  @Test
+  fun `PATCH ingredient notes with a malformed uuid returns 400 and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            val response =
-                client.patch("/api/recipes/notes/$id") {
-                    contentType(ContentType.Application.Json)
-                    setBody("Great bake!")
-                }
-
-            response.status shouldBe HttpStatusCode.NoContent
-            coVerify(exactly = 1) { service.updateRecipeNotes(id, "Great bake!") }
+      val response =
+        client.patch("/api/ingredients/notes/not-a-uuid") {
+          contentType(ContentType.Application.Json)
+          setBody("note")
         }
 
-    @Disabled("Temporarily skipped: Determining how to handle deleting notes")
-    @Test
-    fun `PATCH recipe notes with a null body clears the notes`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            val notesSlot = slot<String?>()
-            coEvery { service.updateRecipeNotes(id, captureNullable(notesSlot)) } returns Unit
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      coVerify(exactly = 0) { service.updateIngredientNotes(any(), any()) }
+    }
 
-            val response =
-                client.patch("/api/recipes/notes/$id") {
-                    contentType(ContentType.Application.Json)
-                    setBody<String?>(null)
-                }
+  @Test
+  fun `PATCH instruction notes with a valid body calls the service and returns 204`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      coEvery { service.updateInstructionNotes(id, "Rest longer in winter") } returns Unit
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.NoContent
-            notesSlot.captured shouldBe null
+      val response =
+        client.patch("/api/instructions/notes/$id") {
+          contentType(ContentType.Application.Json)
+          setBody("Rest longer in winter")
         }
 
-    @Test
-    fun `PATCH recipe notes with a malformed uuid returns 400 and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.NoContent
+      coVerify(exactly = 1) { service.updateInstructionNotes(id, "Rest longer in winter") }
+    }
 
-            val response =
-                client.patch("/api/recipes/notes/not-a-uuid") {
-                    contentType(ContentType.Application.Json)
-                    setBody("Great bake!")
-                }
+  @Test
+  fun `PATCH instruction notes with a malformed uuid returns 400 and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            coVerify(exactly = 0) { service.updateRecipeNotes(any(), any()) }
+      val response =
+        client.patch("/api/instructions/notes/not-a-uuid") {
+          contentType(ContentType.Application.Json)
+          setBody("note")
         }
 
-    @Test
-    fun `PATCH ingredient notes with a valid body calls the service and returns 204`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            coEvery { service.updateIngredientNotes(id, "Reduce to 480g next time") } returns Unit
-            val client = setupTestApp(service)
+      response.status shouldBe HttpStatusCode.BadRequest
+      coVerify(exactly = 0) { service.updateInstructionNotes(any(), any()) }
+    }
 
-            val response =
-                client.patch("/api/ingredients/notes/$id") {
-                    contentType(ContentType.Application.Json)
-                    setBody("Reduce to 480g next time")
-                }
+  // ---------------------------------------------------------------
+  // DELETE /api/recipes/{id}
+  // ---------------------------------------------------------------
 
-            response.status shouldBe HttpStatusCode.NoContent
-            coVerify(exactly = 1) { service.updateIngredientNotes(id, "Reduce to 480g next time") }
-        }
+  @Test
+  fun `DELETE recipe with a valid id returns 204 and calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val id = Uuid.random()
+      coEvery { service.deleteRecipe(id) } returns Unit
+      val client = setupTestApp(service)
 
-    @Test
-    fun `PATCH ingredient notes with a malformed uuid returns 400 and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
+      val response = client.delete("/api/recipes/$id")
 
-            val response =
-                client.patch("/api/ingredients/notes/not-a-uuid") {
-                    contentType(ContentType.Application.Json)
-                    setBody("note")
-                }
+      response.status shouldBe HttpStatusCode.NoContent
+      coVerify(exactly = 1) { service.deleteRecipe(id) }
+    }
 
-            response.status shouldBe HttpStatusCode.BadRequest
-            coVerify(exactly = 0) { service.updateIngredientNotes(any(), any()) }
-        }
+  @Test
+  fun `DELETE recipe with a malformed uuid returns 400 and never calls the service`() =
+    testApplication {
+      val service = mockk<RecipeService>()
+      val client = setupTestApp(service)
 
-    @Test
-    fun `PATCH instruction notes with a valid body calls the service and returns 204`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            coEvery { service.updateInstructionNotes(id, "Rest longer in winter") } returns Unit
-            val client = setupTestApp(service)
+      val response = client.delete("/api/recipes/not-a-uuid")
 
-            val response =
-                client.patch("/api/instructions/notes/$id") {
-                    contentType(ContentType.Application.Json)
-                    setBody("Rest longer in winter")
-                }
-
-            response.status shouldBe HttpStatusCode.NoContent
-            coVerify(exactly = 1) { service.updateInstructionNotes(id, "Rest longer in winter") }
-        }
-
-    @Test
-    fun `PATCH instruction notes with a malformed uuid returns 400 and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
-
-            val response =
-                client.patch("/api/instructions/notes/not-a-uuid") {
-                    contentType(ContentType.Application.Json)
-                    setBody("note")
-                }
-
-            response.status shouldBe HttpStatusCode.BadRequest
-            coVerify(exactly = 0) { service.updateInstructionNotes(any(), any()) }
-        }
-
-    // ---------------------------------------------------------------
-    // DELETE /api/recipes/{id}
-    // ---------------------------------------------------------------
-
-    @Test
-    fun `DELETE recipe with a valid id returns 204 and calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val id = Uuid.random()
-            coEvery { service.deleteRecipe(id) } returns Unit
-            val client = setupTestApp(service)
-
-            val response = client.delete("/api/recipes/$id")
-
-            response.status shouldBe HttpStatusCode.NoContent
-            coVerify(exactly = 1) { service.deleteRecipe(id) }
-        }
-
-    @Test
-    fun `DELETE recipe with a malformed uuid returns 400 and never calls the service`() =
-        testApplication {
-            val service = mockk<RecipeService>()
-            val client = setupTestApp(service)
-
-            val response = client.delete("/api/recipes/not-a-uuid")
-
-            response.status shouldBe HttpStatusCode.BadRequest
-            coVerify(exactly = 0) { service.deleteRecipe(any()) }
-        }
+      response.status shouldBe HttpStatusCode.BadRequest
+      coVerify(exactly = 0) { service.deleteRecipe(any()) }
+    }
 }

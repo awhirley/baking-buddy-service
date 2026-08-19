@@ -7,9 +7,9 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class InstructionDeltaEntry(
-    val id: Uuid,
-    val instructionId: Uuid,
-    val version: Int,
-    val description: String?,
-    @Serializable(with = InstantSerializer::class) val createdAt: Instant,
+  val id: Uuid,
+  val instructionId: Uuid,
+  val version: Int,
+  val description: String?,
+  @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )

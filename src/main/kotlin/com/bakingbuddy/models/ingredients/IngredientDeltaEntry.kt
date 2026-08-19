@@ -7,10 +7,10 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class IngredientDeltaEntry(
-    val id: Uuid,
-    val ingredientId: Uuid,
-    val version: Int,
-    val amount: String?,
-    val name: String?,
-    @Serializable(with = InstantSerializer::class) val createdAt: Instant,
+  val id: Uuid,
+  val ingredientId: Uuid,
+  val version: Int,
+  val amount: String?,
+  val name: String?,
+  @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )

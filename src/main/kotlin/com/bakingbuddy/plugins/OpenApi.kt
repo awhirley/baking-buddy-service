@@ -8,10 +8,10 @@ import io.ktor.server.routing.routing
 import io.ktor.server.routing.routingRoot
 
 fun Application.configureOpenApi() {
-    routing {
-        openAPI(path = "openapi") {
-            info = OpenApiInfo(title = "My Ktor API", version = "1.0.0")
-            source = OpenApiDocSource.Routing { routingRoot.descendants() }
-        }
+  routing {
+    openAPI(path = "openapi") {
+      info = OpenApiInfo(title = "My Ktor API", version = "1.0.0")
+      source = OpenApiDocSource.Routing { routingRoot.descendants() }
     }
+  }
 }

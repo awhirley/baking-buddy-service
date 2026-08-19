@@ -7,10 +7,10 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class Instruction(
-    val id: Uuid,
-    val recipeId: Uuid,
-    val bestVersion: Int,
-    val notes: String?,
-    @Serializable(with = InstantSerializer::class) val createdAt: Instant,
-    val description: String,
+  val id: Uuid,
+  val recipeId: Uuid,
+  val bestVersion: Int,
+  val notes: String?,
+  @Serializable(with = InstantSerializer::class) val createdAt: Instant,
+  val description: String,
 )

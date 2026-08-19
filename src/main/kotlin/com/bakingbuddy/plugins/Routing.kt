@@ -14,26 +14,26 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
-    val recipeService = RecipeService()
-    val deltaService = DeltaService()
-    val bakeService = BakeService()
+  val recipeService = RecipeService()
+  val deltaService = DeltaService()
+  val bakeService = BakeService()
 
-    install(CORS) {
-        allowHost("localhost:5173")
-        allowHost("127.0.0.1:5173")
+  install(CORS) {
+    allowHost("localhost:5173")
+    allowHost("127.0.0.1:5173")
 
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Patch)
-        allowMethod(HttpMethod.Delete)
+    allowMethod(HttpMethod.Get)
+    allowMethod(HttpMethod.Post)
+    allowMethod(HttpMethod.Patch)
+    allowMethod(HttpMethod.Delete)
 
-        allowHeader(io.ktor.http.HttpHeaders.ContentType)
-    }
+    allowHeader(io.ktor.http.HttpHeaders.ContentType)
+  }
 
-    routing {
-        healthRoutes()
-        recipeRoutes(recipeService)
-        deltaRoutes(deltaService)
-        bakeRoutes(bakeService)
-    }
+  routing {
+    healthRoutes()
+    recipeRoutes(recipeService)
+    deltaRoutes(deltaService)
+    bakeRoutes(bakeService)
+  }
 }

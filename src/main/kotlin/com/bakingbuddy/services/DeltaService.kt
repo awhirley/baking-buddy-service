@@ -6,9 +6,9 @@ import com.bakingbuddy.repositories.DeltaRepositoryImpl
 import kotlin.uuid.Uuid
 
 class DeltaService {
-    private val deltaRepository = DeltaRepositoryImpl()
+  private val deltaRepository = DeltaRepositoryImpl()
 
-    suspend fun getIngredientHistory(ingredientId: Uuid): IngredientHistory = deltaRepository.getIngredientHistory(ingredientId)
+  suspend fun getIngredientHistory(ingredientId: Uuid): IngredientHistory = deltaRepository.getIngredientHistory(ingredientId)
 
-    suspend fun getInstructionHistory(instructionId: Uuid): InstructionHistory = deltaRepository.getInstructionHistory(instructionId)
+  suspend fun getInstructionHistory(instructionId: Uuid): InstructionHistory = deltaRepository.getInstructionHistory(instructionId)
 }

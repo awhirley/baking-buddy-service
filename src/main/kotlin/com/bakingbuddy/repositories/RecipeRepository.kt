@@ -11,41 +11,41 @@ import com.bakingbuddy.models.recipes.RecipeDetail
 import kotlin.uuid.Uuid
 
 interface RecipeRepository {
-    suspend fun findById(id: Uuid): Recipe?
+  suspend fun findById(id: Uuid): Recipe?
 
-    suspend fun listAll(): List<RecipeDetail>
+  suspend fun listAll(): List<RecipeDetail>
 
-    suspend fun create(request: CreateRecipePayload): Recipe
+  suspend fun create(request: CreateRecipePayload): Recipe
 
-    suspend fun editRecipe(
-        id: Uuid,
-        request: EditRecipePayload,
-    ): Recipe
+  suspend fun editRecipe(
+    id: Uuid,
+    request: EditRecipePayload,
+  ): Recipe
 
-    suspend fun editIngredient(
-        ingredientId: Uuid,
-        request: EditIngredientPayload,
-    ): Ingredient
+  suspend fun editIngredient(
+    ingredientId: Uuid,
+    request: EditIngredientPayload,
+  ): Ingredient
 
-    suspend fun editInstruction(
-        instructionId: Uuid,
-        request: EditInstructionPayload,
-    ): Instruction
+  suspend fun editInstruction(
+    instructionId: Uuid,
+    request: EditInstructionPayload,
+  ): Instruction
 
-    suspend fun updateRecipeNotes(
-        recipeId: Uuid,
-        notes: String?,
-    )
+  suspend fun updateRecipeNotes(
+    recipeId: Uuid,
+    notes: String?,
+  )
 
-    suspend fun updateIngredientNotes(
-        ingredientId: Uuid,
-        notes: String?,
-    )
+  suspend fun updateIngredientNotes(
+    ingredientId: Uuid,
+    notes: String?,
+  )
 
-    suspend fun updateInstructionNotes(
-        instructionId: Uuid,
-        notes: String?,
-    )
+  suspend fun updateInstructionNotes(
+    instructionId: Uuid,
+    notes: String?,
+  )
 
-    suspend fun deleteRecipe(id: Uuid)
+  suspend fun deleteRecipe(id: Uuid)
 }

@@ -14,71 +14,71 @@ import io.ktor.server.response.respond
 import kotlinx.serialization.SerializationException
 
 fun Application.configureStatusPages() {
-    install(StatusPages) {
-        exception<Throwable> { call, cause ->
-            cause.printStackTrace()
+  install(StatusPages) {
+    exception<Throwable> { call, cause ->
+      cause.printStackTrace()
 
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                mapOf(
-                    "error" to (cause.message ?: "Unknown error"),
-                ),
-            )
-        }
-
-        exception<ContentTransformationException> { call, cause ->
-            call.respond(
-                HttpStatusCode.BadRequest,
-                mapOf("error" to "Invalid request body", "detail" to (cause.cause?.message ?: cause.message)),
-            )
-        }
-        exception<SerializationException> { call, cause ->
-            call.respond(
-                HttpStatusCode.BadRequest,
-                mapOf("error" to "Invalid request body", "detail" to cause.message),
-            )
-        }
-        exception<ApiException> { call, cause ->
-            val body =
-                when (cause) {
-                    is ValidationException ->
-                        ApiErrorBody(
-                            code = cause.code,
-                            message = cause.message,
-                            fieldErrors = cause.fieldErrors,
-                            details = cause.details,
-                        )
-                    else ->
-                        ApiErrorBody(
-                            code = cause.code,
-                            message = cause.message,
-                            details = cause.details,
-                        )
-                }
-            call.respond(cause.statusCode, ApiErrorResponse(body))
-        }
-
-        // Catch-all: never leak internal exception messages/stack traces
-        // to the client. Log the real exception server-side.
-        exception<Throwable> { call, cause ->
-            cause.printStackTrace()
-
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ApiErrorResponse(
-                    ApiErrorBody(
-                        code = ApiErrorCode.INTERNAL_ERROR,
-                        message = "An unexpected error occurred",
-                    ),
-                ),
-            )
-        }
-
-        exception<io.ktor.server.plugins.BadRequestException> { call, cause ->
-            call.respond(
-                HttpStatusCode.BadRequest,
-                mapOf("error" to "Invalid request body", "detail" to (cause.cause?.message ?: cause.message)),
-            )
-        }
+      call.respond(
+        HttpStatusCode.InternalServerError,
+        mapOf(
+          "error" to (cause.message ?: "Unknown error"),
+        ),
+      )
     }
+
+    exception<ContentTransformationException> { call, cause ->
+      call.respond(
+        HttpStatusCode.BadRequest,
+        mapOf("error" to "Invalid request body", "detail" to (cause.cause?.message ?: cause.message)),
+      )
+    }
+    exception<SerializationException> { call, cause ->
+      call.respond(
+        HttpStatusCode.BadRequest,
+        mapOf("error" to "Invalid request body", "detail" to cause.message),
+      )
+    }
+    exception<ApiException> { call, cause ->
+      val body =
+        when (cause) {
+          is ValidationException ->
+            ApiErrorBody(
+              code = cause.code,
+              message = cause.message,
+              fieldErrors = cause.fieldErrors,
+              details = cause.details,
+            )
+          else ->
+            ApiErrorBody(
+              code = cause.code,
+              message = cause.message,
+              details = cause.details,
+            )
+        }
+      call.respond(cause.statusCode, ApiErrorResponse(body))
+    }
+
+    // Catch-all: never leak internal exception messages/stack traces
+    // to the client. Log the real exception server-side.
+    exception<Throwable> { call, cause ->
+      cause.printStackTrace()
+
+      call.respond(
+        HttpStatusCode.InternalServerError,
+        ApiErrorResponse(
+          ApiErrorBody(
+            code = ApiErrorCode.INTERNAL_ERROR,
+            message = "An unexpected error occurred",
+          ),
+        ),
+      )
+    }
+
+    exception<io.ktor.server.plugins.BadRequestException> { call, cause ->
+      call.respond(
+        HttpStatusCode.BadRequest,
+        mapOf("error" to "Invalid request body", "detail" to (cause.cause?.message ?: cause.message)),
+      )
+    }
+  }
 }

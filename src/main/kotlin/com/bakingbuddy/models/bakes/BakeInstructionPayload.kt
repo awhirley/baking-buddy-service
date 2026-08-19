@@ -5,6 +5,6 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class BakeInstructionPayload(
-    val instructionId: Uuid,
-    val version: Int,
+  val instructionId: Uuid,
+  val version: Int,
 )

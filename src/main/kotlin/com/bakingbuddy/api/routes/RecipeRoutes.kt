@@ -20,156 +20,156 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 
 fun Route.recipeRoutes(recipeService: RecipeService) {
-    get(path = "/api/recipes/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
+  get(path = "/api/recipes/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        val uuid = call.requireUuidParam("id")
-        val recipe =
-            recipeService.getRecipe(uuid)
-                ?: throw NotFoundException("Recipe", id)
+    val uuid = call.requireUuidParam("id")
+    val recipe =
+      recipeService.getRecipe(uuid)
+        ?: throw NotFoundException("Recipe", id)
 
-        call.respond(recipe)
+    call.respond(recipe)
+  }
+
+  get(path = "/api/recipes") {
+    val recipes = recipeService.listRecipes()
+    call.respond(recipes)
+  }
+
+  post(path = "/api/recipes") {
+    val payload = call.receive<CreateRecipePayload>()
+
+    validate {
+      requireNotBlank(payload.name, "name")
+      requireNotBlank(payload.description, "description")
+      requireNotBlankIfPresent(payload.recipeSource, "recipeSource")
+
+      require(payload.ingredients.isNotEmpty(), "ingredients", "must contain at least one ingredient")
+      require(payload.instructions.isNotEmpty(), "instructions", "must contain at least one instruction")
+
+      payload.ingredients.forEachIndexed { index, ingredient ->
+        requireNotBlank(ingredient.name, "ingredients[$index].name")
+        requireNotBlank(ingredient.amount, "ingredients[$index].amount")
+      }
+
+      payload.instructions.forEachIndexed { index, instruction ->
+        requireNotBlank(instruction, "instructions[$index]")
+      }
+
+      payload.tags?.forEachIndexed { index, tag ->
+        requireNotBlank(tag, "tags[$index]")
+      }
+
+      payload.tools?.forEachIndexed { index, tool ->
+        requireNotBlank(tool, "tools[$index]")
+      }
     }
 
-    get(path = "/api/recipes") {
-        val recipes = recipeService.listRecipes()
-        call.respond(recipes)
+    val recipe = recipeService.createRecipe(payload)
+    call.respond(HttpStatusCode.Created, recipe)
+  }
+
+  patch(path = "/api/recipes/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
+
+    val payload = call.receive<EditRecipePayload>()
+
+    validate {
+      requireNotBlankIfPresent(payload.name, "name")
+      requireNotBlankIfPresent(payload.description, "description")
+
+      payload.tags?.forEachIndexed { index, tag ->
+        requireNotBlank(tag, "tags[$index]")
+      }
+
+      payload.tools?.forEachIndexed { index, tool ->
+        requireNotBlank(tool, "tools[$index]")
+      }
     }
 
-    post(path = "/api/recipes") {
-        val payload = call.receive<CreateRecipePayload>()
+    val uuid = call.requireUuidParam("id")
+    val recipe = recipeService.editRecipe(uuid, payload)
 
-        validate {
-            requireNotBlank(payload.name, "name")
-            requireNotBlank(payload.description, "description")
-            requireNotBlankIfPresent(payload.recipeSource, "recipeSource")
+    call.respond(recipe)
+  }
 
-            require(payload.ingredients.isNotEmpty(), "ingredients", "must contain at least one ingredient")
-            require(payload.instructions.isNotEmpty(), "instructions", "must contain at least one instruction")
+  patch(path = "/api/ingredients/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-            payload.ingredients.forEachIndexed { index, ingredient ->
-                requireNotBlank(ingredient.name, "ingredients[$index].name")
-                requireNotBlank(ingredient.amount, "ingredients[$index].amount")
-            }
+    val payload = call.receive<EditIngredientPayload>()
 
-            payload.instructions.forEachIndexed { index, instruction ->
-                requireNotBlank(instruction, "instructions[$index]")
-            }
-
-            payload.tags?.forEachIndexed { index, tag ->
-                requireNotBlank(tag, "tags[$index]")
-            }
-
-            payload.tools?.forEachIndexed { index, tool ->
-                requireNotBlank(tool, "tools[$index]")
-            }
-        }
-
-        val recipe = recipeService.createRecipe(payload)
-        call.respond(HttpStatusCode.Created, recipe)
+    validate {
+      requireNotBlank(payload.amount, "amount")
+      requireNotBlank(payload.name, "name")
     }
 
-    patch(path = "/api/recipes/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
+    val uuid = call.requireUuidParam("id")
+    val ingredient = recipeService.editIngredient(uuid, payload)
+    call.respond(ingredient)
+  }
 
-        val payload = call.receive<EditRecipePayload>()
+  patch(path = "/api/instructions/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        validate {
-            requireNotBlankIfPresent(payload.name, "name")
-            requireNotBlankIfPresent(payload.description, "description")
+    val payload = call.receive<EditInstructionPayload>()
 
-            payload.tags?.forEachIndexed { index, tag ->
-                requireNotBlank(tag, "tags[$index]")
-            }
-
-            payload.tools?.forEachIndexed { index, tool ->
-                requireNotBlank(tool, "tools[$index]")
-            }
-        }
-
-        val uuid = call.requireUuidParam("id")
-        val recipe = recipeService.editRecipe(uuid, payload)
-
-        call.respond(recipe)
+    validate {
+      requireNotBlank(payload.description, "description")
     }
 
-    patch(path = "/api/ingredients/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
+    val uuid = call.requireUuidParam("id")
+    val instruction = recipeService.editInstruction(uuid, payload)
+    call.respond(instruction)
+  }
 
-        val payload = call.receive<EditIngredientPayload>()
+  patch(path = "/api/recipes/notes/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        validate {
-            requireNotBlank(payload.amount, "amount")
-            requireNotBlank(payload.name, "name")
-        }
+    val recieved: String? = call.receiveNullable()
 
-        val uuid = call.requireUuidParam("id")
-        val ingredient = recipeService.editIngredient(uuid, payload)
-        call.respond(ingredient)
-    }
+    val uuid = call.requireUuidParam("id")
+    recipeService.updateRecipeNotes(uuid, recieved)
+    call.respond(HttpStatusCode.NoContent)
+  }
 
-    patch(path = "/api/instructions/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
+  patch(path = "/api/ingredients/notes/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        val payload = call.receive<EditInstructionPayload>()
+    val uuid = call.requireUuidParam("id")
+    recipeService.updateIngredientNotes(uuid, call.receive())
+    call.respond(HttpStatusCode.NoContent)
+  }
 
-        validate {
-            requireNotBlank(payload.description, "description")
-        }
+  patch(path = "/api/instructions/notes/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        val uuid = call.requireUuidParam("id")
-        val instruction = recipeService.editInstruction(uuid, payload)
-        call.respond(instruction)
-    }
+    val uuid = call.requireUuidParam("id")
+    recipeService.updateInstructionNotes(uuid, call.receive())
+    call.respond(HttpStatusCode.NoContent)
+  }
 
-    patch(path = "/api/recipes/notes/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
+  delete(path = "/api/recipes/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
 
-        val recieved: String? = call.receiveNullable()
+    val uuid = call.requireUuidParam("id")
 
-        val uuid = call.requireUuidParam("id")
-        recipeService.updateRecipeNotes(uuid, recieved)
-        call.respond(HttpStatusCode.NoContent)
-    }
-
-    patch(path = "/api/ingredients/notes/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
-
-        val uuid = call.requireUuidParam("id")
-        recipeService.updateIngredientNotes(uuid, call.receive())
-        call.respond(HttpStatusCode.NoContent)
-    }
-
-    patch(path = "/api/instructions/notes/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
-
-        val uuid = call.requireUuidParam("id")
-        recipeService.updateInstructionNotes(uuid, call.receive())
-        call.respond(HttpStatusCode.NoContent)
-    }
-
-    delete(path = "/api/recipes/{id}") {
-        val id =
-            call.parameters["id"]
-                ?: throw BadRequestException("Path parameter 'id' must be provided")
-
-        val uuid = call.requireUuidParam("id")
-
-        recipeService.deleteRecipe(uuid)
-        call.respond(HttpStatusCode.NoContent)
-    }
+    recipeService.deleteRecipe(uuid)
+    call.respond(HttpStatusCode.NoContent)
+  }
 }

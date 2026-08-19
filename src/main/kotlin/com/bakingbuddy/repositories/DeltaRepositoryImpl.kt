@@ -15,66 +15,66 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.Uuid
 
 class DeltaRepositoryImpl : DeltaRepository {
-    override suspend fun getIngredientHistory(id: Uuid): IngredientHistory =
-        transaction {
-            val ingredientRow =
-                IngredientsTable
-                    .selectAll()
-                    .where { IngredientsTable.id eq id }
-                    .singleOrNull() ?: throw NotFoundException("Ingredient", id.toString())
+  override suspend fun getIngredientHistory(id: Uuid): IngredientHistory =
+    transaction {
+      val ingredientRow =
+        IngredientsTable
+          .selectAll()
+          .where { IngredientsTable.id eq id }
+          .singleOrNull() ?: throw NotFoundException("Ingredient", id.toString())
 
-            val history =
-                IngredientDeltaTable
-                    .selectAll()
-                    .where { IngredientDeltaTable.ingredient_id eq id }
-                    .orderBy(IngredientDeltaTable.version)
-                    .map { row ->
-                        IngredientDeltaEntry(
-                            id = row[IngredientDeltaTable.id],
-                            ingredientId = row[IngredientDeltaTable.ingredient_id],
-                            version = row[IngredientDeltaTable.version],
-                            name = row[IngredientDeltaTable.name],
-                            amount = row[IngredientDeltaTable.amount],
-                            createdAt = row[IngredientDeltaTable.created_at],
-                        )
-                    }
-
-            IngredientHistory(
-                id = ingredientRow[IngredientsTable.id],
-                recipeId = ingredientRow[IngredientsTable.recipe_id],
-                bestVersion = ingredientRow[IngredientsTable.best_version],
-                history = history,
+      val history =
+        IngredientDeltaTable
+          .selectAll()
+          .where { IngredientDeltaTable.ingredient_id eq id }
+          .orderBy(IngredientDeltaTable.version)
+          .map { row ->
+            IngredientDeltaEntry(
+              id = row[IngredientDeltaTable.id],
+              ingredientId = row[IngredientDeltaTable.ingredient_id],
+              version = row[IngredientDeltaTable.version],
+              name = row[IngredientDeltaTable.name],
+              amount = row[IngredientDeltaTable.amount],
+              createdAt = row[IngredientDeltaTable.created_at],
             )
-        }
+          }
 
-    override suspend fun getInstructionHistory(id: Uuid): InstructionHistory =
-        transaction {
-            val instructionRow =
-                InstructionsTable
-                    .selectAll()
-                    .where { InstructionsTable.id eq id }
-                    .singleOrNull() ?: throw NotFoundException("Instruction", id.toString())
+      IngredientHistory(
+        id = ingredientRow[IngredientsTable.id],
+        recipeId = ingredientRow[IngredientsTable.recipe_id],
+        bestVersion = ingredientRow[IngredientsTable.best_version],
+        history = history,
+      )
+    }
 
-            val history =
-                InstructionDeltaTable
-                    .selectAll()
-                    .where { InstructionDeltaTable.instruction_id eq id }
-                    .orderBy(InstructionDeltaTable.version)
-                    .map { row ->
-                        InstructionDeltaEntry(
-                            id = row[InstructionDeltaTable.id],
-                            instructionId = row[InstructionDeltaTable.instruction_id],
-                            version = row[InstructionDeltaTable.version],
-                            description = row[InstructionDeltaTable.description],
-                            createdAt = row[InstructionDeltaTable.created_at],
-                        )
-                    }
+  override suspend fun getInstructionHistory(id: Uuid): InstructionHistory =
+    transaction {
+      val instructionRow =
+        InstructionsTable
+          .selectAll()
+          .where { InstructionsTable.id eq id }
+          .singleOrNull() ?: throw NotFoundException("Instruction", id.toString())
 
-            InstructionHistory(
-                id = instructionRow[InstructionsTable.id],
-                recipeId = instructionRow[InstructionsTable.recipe_id],
-                bestVersion = instructionRow[InstructionsTable.best_version],
-                history = history,
+      val history =
+        InstructionDeltaTable
+          .selectAll()
+          .where { InstructionDeltaTable.instruction_id eq id }
+          .orderBy(InstructionDeltaTable.version)
+          .map { row ->
+            InstructionDeltaEntry(
+              id = row[InstructionDeltaTable.id],
+              instructionId = row[InstructionDeltaTable.instruction_id],
+              version = row[InstructionDeltaTable.version],
+              description = row[InstructionDeltaTable.description],
+              createdAt = row[InstructionDeltaTable.created_at],
             )
-        }
+          }
+
+      InstructionHistory(
+        id = instructionRow[InstructionsTable.id],
+        recipeId = instructionRow[InstructionsTable.recipe_id],
+        bestVersion = instructionRow[InstructionsTable.best_version],
+        history = history,
+      )
+    }
 }

@@ -7,12 +7,12 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class RecipeDetail(
-    val id: Uuid,
-    val name: String,
-    val description: String?,
-    val recipeSource: String?,
-    val tags: List<String>?,
-    val tools: List<String>?,
-    val notes: String?,
-    @Serializable(with = InstantSerializer::class) val createdAt: Instant,
+  val id: Uuid,
+  val name: String,
+  val description: String?,
+  val recipeSource: String?,
+  val tags: List<String>?,
+  val tools: List<String>?,
+  val notes: String?,
+  @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )
