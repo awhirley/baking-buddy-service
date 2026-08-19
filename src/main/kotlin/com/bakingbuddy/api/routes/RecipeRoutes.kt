@@ -11,6 +11,7 @@ import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.services.RecipeService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -92,7 +93,7 @@ fun Route.recipeRoutes(
         }
           
         val uuid = call.requireUuidParam("id")
-        val recipe = recipeService.editRecipe(uuid, call.receive())
+        val recipe = recipeService.editRecipe(uuid, payload)
 
         call.respond(recipe)
     }
@@ -109,7 +110,7 @@ fun Route.recipeRoutes(
         }
           
         val uuid = call.requireUuidParam("id")
-        val ingredient = recipeService.editIngredient(uuid, call.receive())
+        val ingredient = recipeService.editIngredient(uuid, payload)
         call.respond(ingredient)
     }
 
@@ -124,17 +125,19 @@ fun Route.recipeRoutes(
         }
 
         val uuid = call.requireUuidParam("id")
-        val instruction = recipeService.editInstruction(uuid, call.receive())
+        val instruction = recipeService.editInstruction(uuid, payload)
         call.respond(instruction)
     }
 
     patch(path = "/api/recipes/notes/{id}") {
         val id = call.parameters["id"]
           ?: throw BadRequestException("Path parameter 'id' must be provided")
+          
+        val recieved: String? = call.receiveNullable()
 
         val uuid = call.requireUuidParam("id")
-        val recipe = recipeService.updateRecipeNotes(uuid, call.receive())
-        call.respond(recipe)
+        recipeService.updateRecipeNotes(uuid, recieved)
+        call.respond(HttpStatusCode.NoContent)
     }
 
     patch(path = "/api/ingredients/notes/{id}") {
@@ -142,8 +145,8 @@ fun Route.recipeRoutes(
           ?: throw BadRequestException("Path parameter 'id' must be provided")
 
         val uuid = call.requireUuidParam("id")
-        val ingredient = recipeService.updateIngredientNotes(uuid, call.receive())
-        call.respond(ingredient)
+        recipeService.updateIngredientNotes(uuid, call.receive())
+        call.respond(HttpStatusCode.NoContent)
     }
 
     patch(path = "/api/instructions/notes/{id}") {
@@ -151,8 +154,8 @@ fun Route.recipeRoutes(
           ?: throw BadRequestException("Path parameter 'id' must be provided")
 
         val uuid = call.requireUuidParam("id")
-        val instruction = recipeService.updateInstructionNotes(uuid, call.receive())
-        call.respond(instruction)
+        recipeService.updateInstructionNotes(uuid, call.receive())
+        call.respond(HttpStatusCode.NoContent)
     }
 
     delete(path = "/api/recipes/{id}") {

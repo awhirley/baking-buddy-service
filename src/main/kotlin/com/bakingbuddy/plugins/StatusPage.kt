@@ -6,6 +6,7 @@ import com.bakingbuddy.api.errors.ApiErrorResponse
 import com.bakingbuddy.api.errors.ApiException
 import com.bakingbuddy.api.errors.ValidationException
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.ContentConvertException
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.ContentTransformationException
@@ -58,7 +59,8 @@ fun Application.configureStatusPages() {
         // Catch-all: never leak internal exception messages/stack traces
         // to the client. Log the real exception server-side.
         exception<Throwable> { call, cause ->
-            call.application.environment.log.error("Unhandled exception", cause)
+            cause.printStackTrace()
+
             call.respond(
                 HttpStatusCode.InternalServerError,
                 ApiErrorResponse(
@@ -66,7 +68,13 @@ fun Application.configureStatusPages() {
                         code = ApiErrorCode.INTERNAL_ERROR,
                         message = "An unexpected error occurred"
                     )
-                )
+                )            )
+        }
+        
+        exception<io.ktor.server.plugins.BadRequestException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Invalid request body", "detail" to (cause.cause?.message ?: cause.message)),
             )
         }
     }
