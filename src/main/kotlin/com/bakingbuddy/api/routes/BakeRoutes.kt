@@ -12,6 +12,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 
+@Suppress("ThrowsCount")
 fun Route.bakeRoutes(bakeService: BakeService) {
   post(path = "/api/bakes/recipe/{id}") {
     val id =

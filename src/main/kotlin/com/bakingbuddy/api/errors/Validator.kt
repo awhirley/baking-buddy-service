@@ -3,12 +3,6 @@ package com.bakingbuddy.api.errors
 import io.ktor.server.application.ApplicationCall
 import kotlin.uuid.Uuid
 
-// =====================================================================
-// 3. VALIDATION HELPER
-// Collects all field errors instead of throwing on the first bad field.
-// Call explicitly at the top of route handlers, before hitting the DB.
-// =====================================================================
-
 class Validator {
   private val errors = mutableListOf<FieldError>()
 
@@ -50,6 +44,7 @@ fun validate(block: Validator.() -> Unit) {
   Validator().apply(block).finish()
 }
 
+@Suppress("SwallowedException")
 fun ApplicationCall.requireUuidParam(name: String): Uuid {
   val raw = parameters[name] ?: throw BadRequestException("Path parameter '$name' must be provided")
   return try {
@@ -58,11 +53,3 @@ fun ApplicationCall.requireUuidParam(name: String): Uuid {
     throw BadRequestException("Path parameter '$name' must be a valid UUID")
   }
 }
-
-// Example usage inside a route handler:
-//
-// val payload = call.receive<CreateRecipePayload>()
-// validate {
-//     requireNotBlank(payload.name, "name")
-//     requireNotBlank(payload.recipeSource, "source")
-// }

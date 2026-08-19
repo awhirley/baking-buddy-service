@@ -17,6 +17,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 
+@Suppress("ThrowsCount")
 fun Route.recipeRoutes(recipeService: RecipeService) {
   get(path = "/api/recipes/{id}") {
     val id =
