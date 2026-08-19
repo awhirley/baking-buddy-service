@@ -3,6 +3,8 @@ package com.bakingbuddy.plugins
 import com.bakingbuddy.api.routes.bakeRoutes
 import com.bakingbuddy.api.routes.deltaRoutes
 import com.bakingbuddy.api.routes.healthRoutes
+import com.bakingbuddy.api.routes.ingredientRoutes
+import com.bakingbuddy.api.routes.instructionRoutes
 import com.bakingbuddy.api.routes.recipeRoutes
 import com.bakingbuddy.services.BakeService
 import com.bakingbuddy.services.DeltaService
@@ -32,7 +34,11 @@ fun Application.configureRouting() {
 
   routing {
     healthRoutes()
+
     recipeRoutes(recipeService)
+    ingredientRoutes(recipeService)
+    instructionRoutes(recipeService)
+
     deltaRoutes(deltaService)
     bakeRoutes(bakeService)
   }
