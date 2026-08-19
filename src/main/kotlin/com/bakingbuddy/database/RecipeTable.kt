@@ -4,7 +4,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.TextColumnType
 import org.jetbrains.exposed.v1.javatime.timestamp
 
-object Recipes : Table("recipes") {
+object RecipesTable : Table("recipes") {
     val id = uuid("id")
     val name = text("name")
     val description = text("description").nullable()

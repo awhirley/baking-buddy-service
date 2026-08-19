@@ -2,14 +2,14 @@ package com.bakingbuddy.repositories
 
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
-import com.bakingbuddy.database.BakeIngredients
-import com.bakingbuddy.database.BakeInstructions
-import com.bakingbuddy.database.Bakes
-import com.bakingbuddy.database.IngredientDelta
-import com.bakingbuddy.database.Ingredients
-import com.bakingbuddy.database.InstructionDelta
-import com.bakingbuddy.database.Instructions
-import com.bakingbuddy.database.Recipes
+import com.bakingbuddy.database.BakeIngredientsTable
+import com.bakingbuddy.database.BakeInstructionsTable
+import com.bakingbuddy.database.BakesTable
+import com.bakingbuddy.database.IngredientDeltaTable
+import com.bakingbuddy.database.IngredientsTable
+import com.bakingbuddy.database.InstructionDeltaTable
+import com.bakingbuddy.database.InstructionsTable
+import com.bakingbuddy.database.RecipesTable
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
@@ -29,34 +29,34 @@ import kotlin.uuid.Uuid
 class BakeRepositoryImpl : BakeRepository {
     override suspend fun createBake(recipeId: Uuid): Bake =
         transaction {
-            Recipes
+            RecipesTable
                 .selectAll()
-                .where { Recipes.id eq recipeId }
+                .where { RecipesTable.id eq recipeId }
                 .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
             // Pull the current best_version delta for every ingredient/instruction of this recipe.
             val ingredientDeltas =
-                Ingredients
+                IngredientsTable
                     .join(
-                        IngredientDelta,
+                        IngredientDeltaTable,
                         JoinType.INNER,
-                        onColumn = Ingredients.id,
-                        otherColumn = IngredientDelta.ingredient_id,
-                        additionalConstraint = { IngredientDelta.version eq Ingredients.best_version },
+                        onColumn = IngredientsTable.id,
+                        otherColumn = IngredientDeltaTable.ingredient_id,
+                        additionalConstraint = { IngredientDeltaTable.version eq IngredientsTable.best_version },
                     ).selectAll()
-                    .where { Ingredients.recipe_id eq recipeId }
+                    .where { IngredientsTable.recipe_id eq recipeId }
                     .map { row ->
                         Triple(
-                            row[IngredientDelta.id],
-                            row[IngredientDelta.ingredient_id],
-                            row[IngredientDelta.version],
+                            row[IngredientDeltaTable.id],
+                            row[IngredientDeltaTable.ingredient_id],
+                            row[IngredientDeltaTable.version],
                         )
                     }
 
             val ingredientConceptCount =
-                Ingredients
+                IngredientsTable
                     .selectAll()
-                    .where { Ingredients.recipe_id eq recipeId }
+                    .where { IngredientsTable.recipe_id eq recipeId }
                     .count()
 
             if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
@@ -66,27 +66,27 @@ class BakeRepositoryImpl : BakeRepository {
             }
 
             val instructionDeltas =
-                Instructions
+                InstructionsTable
                     .join(
-                        InstructionDelta,
+                        InstructionDeltaTable,
                         JoinType.INNER,
-                        onColumn = Instructions.id,
-                        otherColumn = InstructionDelta.instruction_id,
-                        additionalConstraint = { InstructionDelta.version eq Instructions.best_version },
+                        onColumn = InstructionsTable.id,
+                        otherColumn = InstructionDeltaTable.instruction_id,
+                        additionalConstraint = { InstructionDeltaTable.version eq InstructionsTable.best_version },
                     ).selectAll()
-                    .where { Instructions.recipe_id eq recipeId }
+                    .where { InstructionsTable.recipe_id eq recipeId }
                     .map { row ->
                         Triple(
-                            row[InstructionDelta.id],
-                            row[InstructionDelta.instruction_id],
-                            row[InstructionDelta.version],
+                            row[InstructionDeltaTable.id],
+                            row[InstructionDeltaTable.instruction_id],
+                            row[InstructionDeltaTable.version],
                         )
                     }
 
             val instructionConceptCount =
-                Instructions
+                InstructionsTable
                     .selectAll()
-                    .where { Instructions.recipe_id eq recipeId }
+                    .where { InstructionsTable.recipe_id eq recipeId }
                     .count()
 
             if (instructionDeltas.size.toLong() != instructionConceptCount) {
@@ -98,25 +98,25 @@ class BakeRepositoryImpl : BakeRepository {
             val bakeId = Uuid.random()
             val createdAt = Instant.now()
 
-            Bakes.insert {
-                it[Bakes.id] = bakeId
-                it[Bakes.recipe_id] = recipeId
-                it[Bakes.created_at] = createdAt
+            BakesTable.insert {
+                it[BakesTable.id] = bakeId
+                it[BakesTable.recipe_id] = recipeId
+                it[BakesTable.created_at] = createdAt
             }
 
             ingredientDeltas.forEach { (deltaId, _, _) ->
-                BakeIngredients.insert {
-                    it[BakeIngredients.id] = Uuid.random()
-                    it[BakeIngredients.bake_id] = bakeId
-                    it[BakeIngredients.ingredient_delta_id] = deltaId
+                BakeIngredientsTable.insert {
+                    it[BakeIngredientsTable.id] = Uuid.random()
+                    it[BakeIngredientsTable.bake_id] = bakeId
+                    it[BakeIngredientsTable.ingredient_delta_id] = deltaId
                 }
             }
 
             instructionDeltas.forEach { (deltaId, _, _) ->
-                BakeInstructions.insert {
-                    it[BakeInstructions.id] = Uuid.random()
-                    it[BakeInstructions.bake_id] = bakeId
-                    it[BakeInstructions.instruction_delta_id] = deltaId
+                BakeInstructionsTable.insert {
+                    it[BakeInstructionsTable.id] = Uuid.random()
+                    it[BakeInstructionsTable.bake_id] = bakeId
+                    it[BakeInstructionsTable.instruction_delta_id] = deltaId
                 }
             }
 
@@ -146,64 +146,64 @@ class BakeRepositoryImpl : BakeRepository {
     override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
         return transaction {
             val bakeRows =
-                Bakes
+                BakesTable
                     .selectAll()
-                    .where { Bakes.recipe_id eq recipeId }
+                    .where { BakesTable.recipe_id eq recipeId }
                     .toList()
 
             if (bakeRows.isEmpty()) return@transaction emptyList()
 
-            val bakeIds = bakeRows.map { it[Bakes.id] }
+            val bakeIds = bakeRows.map { it[BakesTable.id] }
 
             val ingredientVersionsByBake =
-                BakeIngredients
+                BakeIngredientsTable
                     .join(
-                        IngredientDelta,
+                        IngredientDeltaTable,
                         JoinType.INNER,
-                        onColumn = BakeIngredients.ingredient_delta_id,
-                        otherColumn = IngredientDelta.id,
+                        onColumn = BakeIngredientsTable.ingredient_delta_id,
+                        otherColumn = IngredientDeltaTable.id,
                     ).selectAll()
-                    .where { BakeIngredients.bake_id inList bakeIds }
+                    .where { BakeIngredientsTable.bake_id inList bakeIds }
                     .map { row ->
-                        row[BakeIngredients.bake_id] to
+                        row[BakeIngredientsTable.bake_id] to
                             BakeIngredientPayload(
-                                ingredientId = row[IngredientDelta.ingredient_id],
-                                version = row[IngredientDelta.version],
+                                ingredientId = row[IngredientDeltaTable.ingredient_id],
+                                version = row[IngredientDeltaTable.version],
                             )
                     }.groupBy({ it.first }, { it.second })
 
             val instructionVersionsByBake =
-                BakeInstructions
+                BakeInstructionsTable
                     .join(
-                        InstructionDelta,
+                        InstructionDeltaTable,
                         JoinType.INNER,
-                        onColumn = BakeInstructions.instruction_delta_id,
-                        otherColumn = InstructionDelta.id,
+                        onColumn = BakeInstructionsTable.instruction_delta_id,
+                        otherColumn = InstructionDeltaTable.id,
                     ).selectAll()
-                    .where { BakeInstructions.bake_id inList bakeIds }
+                    .where { BakeInstructionsTable.bake_id inList bakeIds }
                     .map { row ->
-                        row[BakeInstructions.bake_id] to
+                        row[BakeInstructionsTable.bake_id] to
                             BakeInstructionPayload(
-                                instructionId = row[InstructionDelta.instruction_id],
-                                version = row[InstructionDelta.version],
+                                instructionId = row[InstructionDeltaTable.instruction_id],
+                                version = row[InstructionDeltaTable.version],
                             )
                     }.groupBy({ it.first }, { it.second })
 
             bakeRows.map { row ->
-                val bakeId = row[Bakes.id]
+                val bakeId = row[BakesTable.id]
                 val bakeDetail =
                     BakeDetail(
                         id = bakeId,
-                        recipeId = row[Bakes.recipe_id],
-                        date = row[Bakes.date],
-                        results = row[Bakes.results],
-                        elevation = row[Bakes.elevation],
-                        notes = row[Bakes.notes],
-                        createdAt = row[Bakes.created_at],
+                        recipeId = row[BakesTable.recipe_id],
+                        date = row[BakesTable.date],
+                        results = row[BakesTable.results],
+                        elevation = row[BakesTable.elevation],
+                        notes = row[BakesTable.notes],
+                        createdAt = row[BakesTable.created_at],
                     )
                 Bake(
                     id = bakeId,
-                    recipeId = row[Bakes.recipe_id],
+                    recipeId = row[BakesTable.recipe_id],
                     details = bakeDetail,
                     ingredientVersions = ingredientVersionsByBake[bakeId] ?: emptyList(),
                     instructionVersions = instructionVersionsByBake[bakeId] ?: emptyList(),
@@ -216,55 +216,55 @@ class BakeRepositoryImpl : BakeRepository {
     override suspend fun listBakes(recipeId: Uuid): List<BakeDetail> {
         return transaction {
             val bakeRows =
-                Bakes
+                BakesTable
                     .selectAll()
-                    .where { Bakes.recipe_id eq recipeId }
+                    .where { BakesTable.recipe_id eq recipeId }
                     .toList()
 
             if (bakeRows.isEmpty()) return@transaction emptyList()
 
-            val bakeIds = bakeRows.map { it[Bakes.id] }
+            val bakeIds = bakeRows.map { it[BakesTable.id] }
 
             bakeRows.map { row ->
-                val bakeId = row[Bakes.id]
+                val bakeId = row[BakesTable.id]
                 BakeDetail(
                     id = bakeId,
-                    recipeId = row[Bakes.recipe_id],
-                    date = row[Bakes.date],
-                    results = row[Bakes.results],
-                    elevation = row[Bakes.elevation],
-                    notes = row[Bakes.notes],
-                    createdAt = row[Bakes.created_at],
+                    recipeId = row[BakesTable.recipe_id],
+                    date = row[BakesTable.date],
+                    results = row[BakesTable.results],
+                    elevation = row[BakesTable.elevation],
+                    notes = row[BakesTable.notes],
+                    createdAt = row[BakesTable.created_at],
                 )
             }
         }
     }
 
-    override suspend fun updateBake(payload: UpdateBakePayload) =
+    override suspend fun updateBake(payload: UpdateBakePayload): Unit =
         transaction {
-            Bakes
+            BakesTable
                 .selectAll()
-                .where { Bakes.id eq payload.bakeId }
+                .where { BakesTable.id eq payload.bakeId }
                 .singleOrNull() ?: throw NotFoundException("Bake", payload.bakeId.toString())
 
-            Bakes.update({ Bakes.id eq payload.bakeId }) {
-                payload.date?.let { date -> it[Bakes.date] = date }
-                payload.results?.let { results -> it[Bakes.results] = results }
-                payload.elevation?.let { elevation -> it[Bakes.elevation] = elevation }
-                payload.notes?.let { notes -> it[Bakes.notes] = notes }
+            BakesTable.update({ BakesTable.id eq payload.bakeId }) {
+                payload.date?.let { date -> it[BakesTable.date] = date }
+                payload.results?.let { results -> it[BakesTable.results] = results }
+                payload.elevation?.let { elevation -> it[BakesTable.elevation] = elevation }
+                payload.notes?.let { notes -> it[BakesTable.notes] = notes }
             }
         }
 
-    override suspend fun deleteBake(id: Uuid) =
+    override suspend fun deleteBake(id: Uuid): Unit =
         transaction {
             val existing =
-                Bakes
+                BakesTable
                     .selectAll()
-                    .where { Bakes.id eq id }
+                    .where { BakesTable.id eq id }
                     .singleOrNull() ?: throw NotFoundException("Bake", id.toString())
 
-            BakeIngredients.deleteWhere { BakeIngredients.bake_id eq id }
-            BakeInstructions.deleteWhere { BakeInstructions.bake_id eq id }
-            Bakes.deleteWhere { Bakes.id eq id }
+            BakeIngredientsTable.deleteWhere { BakeIngredientsTable.bake_id eq id }
+            BakeInstructionsTable.deleteWhere { BakeInstructionsTable.bake_id eq id }
+            BakesTable.deleteWhere { BakesTable.id eq id }
         }
 }

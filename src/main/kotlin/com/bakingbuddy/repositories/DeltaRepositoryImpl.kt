@@ -1,10 +1,10 @@
 package com.bakingbuddy.repositories
 
 import com.bakingbuddy.api.errors.NotFoundException
-import com.bakingbuddy.database.IngredientDelta
-import com.bakingbuddy.database.Ingredients
-import com.bakingbuddy.database.InstructionDelta
-import com.bakingbuddy.database.Instructions
+import com.bakingbuddy.database.IngredientDeltaTable
+import com.bakingbuddy.database.IngredientsTable
+import com.bakingbuddy.database.InstructionDeltaTable
+import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
 import com.bakingbuddy.models.ingredients.IngredientHistory
 import com.bakingbuddy.models.instructions.InstructionDeltaEntry
@@ -18,31 +18,31 @@ class DeltaRepositoryImpl : DeltaRepository {
     override suspend fun getIngredientHistory(id: Uuid): IngredientHistory =
         transaction {
             val ingredientRow =
-                Ingredients
+                IngredientsTable
                     .selectAll()
-                    .where { Ingredients.id eq id }
+                    .where { IngredientsTable.id eq id }
                     .singleOrNull() ?: throw NotFoundException("Ingredient", id.toString())
 
             val history =
-                IngredientDelta
+                IngredientDeltaTable
                     .selectAll()
-                    .where { IngredientDelta.ingredient_id eq id }
-                    .orderBy(IngredientDelta.version)
+                    .where { IngredientDeltaTable.ingredient_id eq id }
+                    .orderBy(IngredientDeltaTable.version)
                     .map { row ->
                         IngredientDeltaEntry(
-                            id = row[IngredientDelta.id],
-                            ingredientId = row[IngredientDelta.ingredient_id],
-                            version = row[IngredientDelta.version],
-                            name = row[IngredientDelta.name],
-                            amount = row[IngredientDelta.amount],
-                            createdAt = row[IngredientDelta.created_at],
+                            id = row[IngredientDeltaTable.id],
+                            ingredientId = row[IngredientDeltaTable.ingredient_id],
+                            version = row[IngredientDeltaTable.version],
+                            name = row[IngredientDeltaTable.name],
+                            amount = row[IngredientDeltaTable.amount],
+                            createdAt = row[IngredientDeltaTable.created_at],
                         )
                     }
 
             IngredientHistory(
-                id = ingredientRow[Ingredients.id],
-                recipeId = ingredientRow[Ingredients.recipe_id],
-                bestVersion = ingredientRow[Ingredients.best_version],
+                id = ingredientRow[IngredientsTable.id],
+                recipeId = ingredientRow[IngredientsTable.recipe_id],
+                bestVersion = ingredientRow[IngredientsTable.best_version],
                 history = history,
             )
         }
@@ -50,30 +50,30 @@ class DeltaRepositoryImpl : DeltaRepository {
     override suspend fun getInstructionHistory(id: Uuid): InstructionHistory =
         transaction {
             val instructionRow =
-                Instructions
+                InstructionsTable
                     .selectAll()
-                    .where { Instructions.id eq id }
+                    .where { InstructionsTable.id eq id }
                     .singleOrNull() ?: throw NotFoundException("Instruction", id.toString())
 
             val history =
-                InstructionDelta
+                InstructionDeltaTable
                     .selectAll()
-                    .where { InstructionDelta.instruction_id eq id }
-                    .orderBy(InstructionDelta.version)
+                    .where { InstructionDeltaTable.instruction_id eq id }
+                    .orderBy(InstructionDeltaTable.version)
                     .map { row ->
                         InstructionDeltaEntry(
-                            id = row[InstructionDelta.id],
-                            instructionId = row[InstructionDelta.instruction_id],
-                            version = row[InstructionDelta.version],
-                            description = row[InstructionDelta.description],
-                            createdAt = row[InstructionDelta.created_at],
+                            id = row[InstructionDeltaTable.id],
+                            instructionId = row[InstructionDeltaTable.instruction_id],
+                            version = row[InstructionDeltaTable.version],
+                            description = row[InstructionDeltaTable.description],
+                            createdAt = row[InstructionDeltaTable.created_at],
                         )
                     }
 
             InstructionHistory(
-                id = instructionRow[Instructions.id],
-                recipeId = instructionRow[Instructions.recipe_id],
-                bestVersion = instructionRow[Instructions.best_version],
+                id = instructionRow[InstructionsTable.id],
+                recipeId = instructionRow[InstructionsTable.recipe_id],
+                bestVersion = instructionRow[InstructionsTable.best_version],
                 history = history,
             )
         }

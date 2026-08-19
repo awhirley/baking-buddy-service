@@ -4,9 +4,9 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.timestamp
 
-object Bakes : Table("bakes") {
+object BakesTable : Table("bakes") {
     val id = uuid("id")
-    val recipe_id = uuid("recipe_id").references(Recipes.id)
+    val recipe_id = uuid("recipe_id").references(RecipesTable.id)
     val date = date("date").nullable()
     val results = text("results").nullable()
     val elevation = integer("elevation").nullable()

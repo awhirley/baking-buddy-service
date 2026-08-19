@@ -3,7 +3,7 @@ package com.bakingbuddy.database
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
 
-object IngredientDelta : Table("ingredient_delta") {
+object IngredientDeltaTable : Table("ingredient_delta") {
     val id = uuid("id")
     val ingredient_id = uuid("ingredient_id")
     val version = integer("version")
