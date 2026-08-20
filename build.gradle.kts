@@ -32,9 +32,9 @@ dependencies {
   implementation("io.ktor:ktor-server-openapi:3.5.2")
   implementation("io.ktor:ktor-server-routing-openapi:3.5.2")
 
-  implementation("org.jetbrains.exposed:exposed-core:1.3.1")
-  implementation("org.jetbrains.exposed:exposed-jdbc:1.3.1")
-  implementation("org.jetbrains.exposed:exposed-java-time:1.3.1")
+  implementation("org.jetbrains.exposed:exposed-core:1.4.0")
+  implementation("org.jetbrains.exposed:exposed-jdbc:1.4.0")
+  implementation("org.jetbrains.exposed:exposed-java-time:1.4.0")
   implementation("org.postgresql:postgresql:42.7.7")
 
   implementation(libs.logback.classic)
