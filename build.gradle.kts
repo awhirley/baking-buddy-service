@@ -29,8 +29,8 @@ dependencies {
   implementation("io.ktor:ktor-server-status-pages")
   implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 
-  implementation("io.ktor:ktor-server-openapi:3.4.0")
-  implementation("io.ktor:ktor-server-routing-openapi:3.4.0")
+  implementation("io.ktor:ktor-server-openapi:3.5.2")
+  implementation("io.ktor:ktor-server-routing-openapi:3.5.2")
 
   implementation("org.jetbrains.exposed:exposed-core:1.3.1")
   implementation("org.jetbrains.exposed:exposed-jdbc:1.3.1")
