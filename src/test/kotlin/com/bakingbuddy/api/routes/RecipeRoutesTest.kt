@@ -387,13 +387,6 @@ class RecipeRoutesTest {
   @Test
   fun `PATCH recipe with a valid payload calls editRecipe with the parsed body`() =
     testApplication {
-      // KNOWN BUG: the route parses `payload` via call.receive(), validates it,
-      // then calls editRecipe(uuid, call.receive()) -- a SECOND receive() on an
-      // already-consumed request body. That's not a ContentTransformationException,
-      // so it isn't caught by the dedicated 400 handler -- it falls through to the
-      // catch-all Throwable handler and comes back as 500, not 200. This test
-      // documents the intended behavior and will fail until editRecipe(uuid, payload)
-      // reuses the already-parsed `payload` variable.
       val service = mockk<RecipeService>()
       val id = Uuid.random()
       val payload = EditRecipePayload(name = "New Name")
