@@ -114,7 +114,7 @@ class DeltaRoutesTest {
       // Update this test if DeltaRepositoryImpl signals not-found differently.
       val service = mockk<DeltaService>()
       val id = Uuid.random()
-      coEvery { service.getIngredientHistory(id) }  throws NotFoundException("Ingredient", id.toString())
+      coEvery { service.getIngredientHistory(id) } throws NotFoundException("Ingredient", id.toString())
       val client = setupTestApp(service)
 
       val response = client.get("/api/ingredients/history/$id")
