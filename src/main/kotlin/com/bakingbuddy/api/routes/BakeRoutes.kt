@@ -51,7 +51,7 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     call.respond(HttpStatusCode.NoContent)
   }
 
-  delete(path = "api/bakes/{id}") {
+  delete(path = "/api/bakes/{id}") {
     val id =
       call.parameters["id"]
         ?: throw BadRequestException("Path parameter 'id' must be provided")
