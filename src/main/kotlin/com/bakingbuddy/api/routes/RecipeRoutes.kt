@@ -42,7 +42,7 @@ fun Route.recipeRoutes(recipeService: RecipeService) {
 
     validate {
       requireNotBlank(payload.name, "name")
-      requireNotBlank(payload.description, "description")
+      requireNotBlankIfPresent(payload.description, "description")
       requireNotBlankIfPresent(payload.recipeSource, "recipeSource")
 
       require(payload.ingredients.isNotEmpty(), "ingredients", "must contain at least one ingredient")
