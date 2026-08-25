@@ -5,7 +5,10 @@ import org.jetbrains.exposed.v1.core.Table
 object BakeIngredientsTable : Table("bake_ingredients") {
   val id = uuid("id")
   val bake_id = uuid("bake_id").references(BakesTable.id)
-  val ingredient_delta_id = uuid("ingredient_delta_id").references(IngredientDeltaTable.id)
+  val ingredient_id = uuid("ingredient_id").references(IngredientsTable.id)
+  val amount = text("amount").nullable()
+  val name = text("name").nullable()
+  val notes = text("notes").nullable()
 
   override val primaryKey = PrimaryKey(id)
 }
