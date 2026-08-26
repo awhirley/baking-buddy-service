@@ -10,7 +10,7 @@ object RecipesTable : Table("recipes") {
   val description = text("description").nullable()
   val created_at = timestamp("created_at")
   val recipe_source = text("recipe_source").nullable()
-  val recipe_source_type = text("recipe_source").nullable()
+  val recipe_source_type = text("recipe_source_type").nullable()
   val tags = array<String>("tags", TextColumnType())
   val tools = array<String>("tools", TextColumnType())
   val notes = text("notes").nullable()

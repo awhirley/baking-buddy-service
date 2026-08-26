@@ -27,6 +27,74 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 class BakeRepositoryImpl : BakeRepository {
+  private fun getBestIngredientDeltas(recipeId: Uuid): List<Triple<Uuid, Uuid, Int>> {
+    val ingredientDeltas =
+      IngredientsTable
+        .join(
+          IngredientDeltaTable,
+          JoinType.INNER,
+          onColumn = IngredientsTable.id,
+          otherColumn = IngredientDeltaTable.ingredient_id,
+          additionalConstraint = { IngredientDeltaTable.version eq IngredientsTable.best_version },
+        ).selectAll()
+        .where { IngredientsTable.recipe_id eq recipeId }
+        .map { row ->
+          Triple(
+            row[IngredientDeltaTable.id],
+            row[IngredientDeltaTable.ingredient_id],
+            row[IngredientDeltaTable.version],
+          )
+        }
+
+    val ingredientConceptCount =
+      IngredientsTable
+        .selectAll()
+        .where { IngredientsTable.recipe_id eq recipeId }
+        .count()
+
+    if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
+      throw DataIntegrityException(
+        "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId",
+      )
+    }
+
+    return ingredientDeltas
+  }
+
+  private fun getBestInstructionDeltas(recipeId: Uuid): List<Triple<Uuid, Uuid, Int>> {
+    val instructionDeltas =
+      InstructionsTable
+        .join(
+          InstructionDeltaTable,
+          JoinType.INNER,
+          onColumn = InstructionsTable.id,
+          otherColumn = InstructionDeltaTable.instruction_id,
+          additionalConstraint = { InstructionDeltaTable.version eq InstructionsTable.best_version },
+        ).selectAll()
+        .where { InstructionsTable.recipe_id eq recipeId }
+        .map { row ->
+          Triple(
+            row[InstructionDeltaTable.id],
+            row[InstructionDeltaTable.instruction_id],
+            row[InstructionDeltaTable.version],
+          )
+        }
+
+    val instructionConceptCount =
+      InstructionsTable
+        .selectAll()
+        .where { InstructionsTable.recipe_id eq recipeId }
+        .count()
+
+    if (instructionDeltas.size.toLong() != instructionConceptCount) {
+      throw DataIntegrityException(
+        "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId",
+      )
+    }
+
+    return instructionDeltas
+  }
+
   override suspend fun createBake(recipeId: Uuid): Bake =
     transaction {
       RecipesTable
@@ -35,65 +103,8 @@ class BakeRepositoryImpl : BakeRepository {
         .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       // Pull the current best_version delta for every ingredient/instruction of this recipe.
-      val ingredientDeltas =
-        IngredientsTable
-          .join(
-            IngredientDeltaTable,
-            JoinType.INNER,
-            onColumn = IngredientsTable.id,
-            otherColumn = IngredientDeltaTable.ingredient_id,
-            additionalConstraint = { IngredientDeltaTable.version eq IngredientsTable.best_version },
-          ).selectAll()
-          .where { IngredientsTable.recipe_id eq recipeId }
-          .map { row ->
-            Triple(
-              row[IngredientDeltaTable.id],
-              row[IngredientDeltaTable.ingredient_id],
-              row[IngredientDeltaTable.version],
-            )
-          }
-
-      val ingredientConceptCount =
-        IngredientsTable
-          .selectAll()
-          .where { IngredientsTable.recipe_id eq recipeId }
-          .count()
-
-      if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
-        throw DataIntegrityException(
-          "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId",
-        )
-      }
-
-      val instructionDeltas =
-        InstructionsTable
-          .join(
-            InstructionDeltaTable,
-            JoinType.INNER,
-            onColumn = InstructionsTable.id,
-            otherColumn = InstructionDeltaTable.instruction_id,
-            additionalConstraint = { InstructionDeltaTable.version eq InstructionsTable.best_version },
-          ).selectAll()
-          .where { InstructionsTable.recipe_id eq recipeId }
-          .map { row ->
-            Triple(
-              row[InstructionDeltaTable.id],
-              row[InstructionDeltaTable.instruction_id],
-              row[InstructionDeltaTable.version],
-            )
-          }
-
-      val instructionConceptCount =
-        InstructionsTable
-          .selectAll()
-          .where { InstructionsTable.recipe_id eq recipeId }
-          .count()
-
-      if (instructionDeltas.size.toLong() != instructionConceptCount) {
-        throw DataIntegrityException(
-          "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId",
-        )
-      }
+      val ingredientDeltas = getBestIngredientDeltas(recipeId)
+      val instructionDeltas = getBestInstructionDeltas(recipeId)
 
       val bakeId = Uuid.random()
       val createdAt = Instant.now()
@@ -102,6 +113,7 @@ class BakeRepositoryImpl : BakeRepository {
         it[BakesTable.id] = bakeId
         it[BakesTable.recipe_id] = recipeId
         it[BakesTable.created_at] = createdAt
+        it[BakesTable.start_datetime] = createdAt
       }
 
       ingredientDeltas.forEach { (deltaId, _, _) ->
@@ -125,6 +137,7 @@ class BakeRepositoryImpl : BakeRepository {
           id = bakeId,
           recipeId = recipeId,
           createdAt = createdAt,
+          startDatetime = createdAt,
         )
 
       Bake(
@@ -195,11 +208,11 @@ class BakeRepositoryImpl : BakeRepository {
           BakeDetail(
             id = bakeId,
             recipeId = row[BakesTable.recipe_id],
-            date = row[BakesTable.date],
-            results = row[BakesTable.results],
             elevation = row[BakesTable.elevation],
             notes = row[BakesTable.notes],
             createdAt = row[BakesTable.created_at],
+            startDatetime = row[BakesTable.start_datetime],
+            endDatetime = row[BakesTable.end_datetime],
           )
         Bake(
           id = bakeId,
@@ -230,11 +243,11 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = bakeId,
           recipeId = row[BakesTable.recipe_id],
-          date = row[BakesTable.date],
-          results = row[BakesTable.results],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],
+          startDatetime = row[BakesTable.start_datetime],
+          endDatetime = row[BakesTable.end_datetime],
         )
       }
     }
@@ -248,8 +261,8 @@ class BakeRepositoryImpl : BakeRepository {
         .singleOrNull() ?: throw NotFoundException("Bake", payload.bakeId.toString())
 
       BakesTable.update({ BakesTable.id eq payload.bakeId }) {
-        payload.date?.let { date -> it[BakesTable.date] = date }
-        payload.results?.let { results -> it[BakesTable.results] = results }
+        payload.startDatetime?.let { start -> it[BakesTable.start_datetime] = start }
+        payload.endDatetime?.let { end -> it[BakesTable.end_datetime] = end }
         payload.elevation?.let { elevation -> it[BakesTable.elevation] = elevation }
         payload.notes?.let { notes -> it[BakesTable.notes] = notes }
       }

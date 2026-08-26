@@ -52,6 +52,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           description = recipeRow[RecipesTable.description],
           createdAt = recipeRow[RecipesTable.created_at],
           recipeSource = recipeRow[RecipesTable.recipe_source],
+          recipeSourceType = recipeRow[RecipesTable.recipe_source_type],
           tags = recipeRow[RecipesTable.tags],
           tools = recipeRow[RecipesTable.tools],
           notes = recipeRow[RecipesTable.notes],
@@ -76,6 +77,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             name = row[RecipesTable.name],
             description = row[RecipesTable.description],
             recipeSource = row[RecipesTable.recipe_source],
+            recipeSourceType = row[RecipesTable.recipe_source_type],
             tags = row[RecipesTable.tags],
             createdAt = row[RecipesTable.created_at],
             tools = row[RecipesTable.tools],
@@ -95,6 +97,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           it[RecipesTable.name] = request.name
           it[RecipesTable.description] = request.description
           it[RecipesTable.recipe_source] = request.recipeSource.orEmpty()
+          it[RecipesTable.recipe_source_type] = request.recipeSourceType
           it[RecipesTable.tags] = request.tags.orEmpty()
           it[RecipesTable.tools] = request.tools.orEmpty()
           it[RecipesTable.created_at] = createdAt
@@ -109,6 +112,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           name = request.name,
           description = request.description,
           recipeSource = request.recipeSource,
+          recipeSourceType = request.recipeSourceType,
           tags = request.tags,
           tools = request.tools,
           createdAt = createdAt,
@@ -140,6 +144,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         request.name?.let { name -> it[RecipesTable.name] = name }
         request.description?.let { description -> it[RecipesTable.description] = description }
         request.recipeSource?.let { source -> it[RecipesTable.recipe_source] = source }
+        request.recipeSourceType?.let { sourceType -> it[RecipesTable.recipe_source_type] = sourceType }
         request.tags?.let { tags -> it[RecipesTable.tags] = tags }
         request.tools?.let { tools -> it[RecipesTable.tools] = tools }
       }
@@ -157,6 +162,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           description = updatedRow[RecipesTable.description],
           createdAt = updatedRow[RecipesTable.created_at],
           recipeSource = updatedRow[RecipesTable.recipe_source],
+          recipeSourceType = updatedRow[RecipesTable.recipe_source_type],
           tags = updatedRow[RecipesTable.tags],
           tools = updatedRow[RecipesTable.tools],
           notes = updatedRow[RecipesTable.notes],
@@ -218,6 +224,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         createdAt = ingredientRow[IngredientsTable.created_at],
         amount = request.amount,
         name = request.name,
+        order = ingredientRow[IngredientsTable.order],
       )
     }
 
@@ -269,6 +276,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         notes = instructionRow[InstructionsTable.notes],
         createdAt = instructionRow[InstructionsTable.created_at],
         description = request.description,
+        order = instructionRow[InstructionsTable.order],
       )
     }
 

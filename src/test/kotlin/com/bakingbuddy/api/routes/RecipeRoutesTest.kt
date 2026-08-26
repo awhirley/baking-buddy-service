@@ -59,6 +59,7 @@ private fun sampleRecipe(id: Uuid = Uuid.random()): Recipe =
         name = "Sourdough Loaf",
         description = "Basic sourdough",
         recipeSource = null,
+        recipeSourceType = null,
         tags = null,
         tools = null,
         notes = null,
@@ -74,6 +75,7 @@ private fun sampleRecipeDetail(id: Uuid = Uuid.random()): RecipeDetail =
     name = "Sourdough Loaf",
     description = "Basic sourdough",
     recipeSource = null,
+    recipeSourceType = null,
     tags = null,
     tools = null,
     notes = null,
@@ -92,6 +94,7 @@ private fun sampleIngredient(
     createdAt = Instant.now(),
     amount = "500g",
     name = "Flour",
+    order = null,
   )
 
 private fun sampleInstruction(
@@ -105,6 +108,7 @@ private fun sampleInstruction(
     notes = null,
     createdAt = Instant.now(),
     description = "Mix and knead",
+    order = null,
   )
 
 private fun validCreateRecipePayload() =
@@ -112,6 +116,7 @@ private fun validCreateRecipePayload() =
     name = "Sourdough Loaf",
     description = "Basic sourdough",
     recipeSource = null,
+    recipeSourceType = null,
     tags = null,
     tools = null,
     ingredients = listOf(CreateIngredientPayload(name = "Flour", amount = "500g")),

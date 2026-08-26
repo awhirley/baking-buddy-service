@@ -7,6 +7,7 @@ data class EditRecipePayload(
   val name: String? = null,
   val description: String? = null,
   val recipeSource: String? = null,
+  val recipeSourceType: String? = null,
   val tags: List<String>? = null,
   val tools: List<String>? = null,
 )

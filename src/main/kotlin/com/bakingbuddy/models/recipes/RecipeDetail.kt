@@ -11,6 +11,7 @@ data class RecipeDetail(
   val name: String,
   val description: String?,
   val recipeSource: String?,
+  val recipeSourceType: String?,
   val tags: List<String>?,
   val tools: List<String>?,
   val notes: String?,
