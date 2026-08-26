@@ -18,4 +18,10 @@ class BakeService {
   suspend fun updateBake(payload: UpdateBakePayload) = bakeRepository.updateBake(payload)
 
   suspend fun deleteBake(id: Uuid) = bakeRepository.deleteBake(id)
+
+  suspend fun updateBakeInstruction(
+    bakeId: Uuid,
+    instructionDeltaId: Uuid,
+    description: String,
+  ) = bakeRepository.updateBakeInstruction(bakeId, instructionDeltaId, description)
 }

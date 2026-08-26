@@ -15,4 +15,10 @@ interface BakeRepository {
   suspend fun updateBake(payload: UpdateBakePayload)
 
   suspend fun deleteBake(id: Uuid)
+
+  suspend fun updateBakeInstruction(
+    bakeId: Uuid,
+    instructionDeltaId: Uuid,
+    description: String,
+  )
 }
