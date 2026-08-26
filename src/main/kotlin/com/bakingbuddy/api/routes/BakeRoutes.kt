@@ -3,6 +3,7 @@ package com.bakingbuddy.api.routes
 import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.requireUuidParam
 import com.bakingbuddy.api.errors.validate
+import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.services.BakeService
 import io.ktor.http.HttpStatusCode
@@ -63,17 +64,17 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     call.respond(HttpStatusCode.NoContent)
   }
 
-  patch(path = "/api/bakes/{bake_id}/instructions/{instruction_id}") {
+  patch(path = "/api/bakes/{bake_id}/instruction/{instruction_delta_id}") {
     val bakeId =
       call.parameters["bake_id"]
         ?: throw BadRequestException("Path parameter 'bake_id' must be provided")
 
     val instructionId =
-      call.parameters["instruction_id"]
-        ?: throw BadRequestException("Path parameter 'instruction_id' must be provided")
+      call.parameters["instruction_delta_id"]
+        ?: throw BadRequestException("Path parameter 'instruction_delta_id' must be provided")
 
     val bakeUuid = call.requireUuidParam("bake_id")
-    val instructionUuid = call.requireUuidParam("instruction_id")
+    val instructionDeltaUuid = call.requireUuidParam("instruction_delta_id")
 
     val payload = call.receive<UpdateBakeInstructionPayload>()
 
@@ -81,7 +82,30 @@ fun Route.bakeRoutes(bakeService: BakeService) {
       requireNotBlank(payload.description, "description")
     }
 
-    bakeService.updateBakeInstruction(bakeUuid, instructionUuid, payload.description)
+    bakeService.updateBakeInstruction(bakeUuid, instructionDeltaUuid, payload)
+    call.respond(HttpStatusCode.NoContent)
+  }
+  
+  patch(path = "/api/bakes/{bake_id}/ingredient/{ingredient_delta_id}") {
+    val bakeId =
+      call.parameters["bake_id"]
+        ?: throw BadRequestException("Path parameter 'bake_id' must be provided")
+
+    val ingredientId =
+      call.parameters["ingredient_delta_id"]
+        ?: throw BadRequestException("Path parameter 'ingredient_delta_id' must be provided")
+
+    val bakeUuid = call.requireUuidParam("bake_id")
+    val ingredientDeltaUuid = call.requireUuidParam("ingredient_delta_id")
+
+    val payload = call.receive<UpdateBakeIngredientPayload>()
+
+    validate {
+      requireNotBlank(payload.amount, "amount")
+      requireNotBlank(payload.name, "name")
+    }
+
+    bakeService.updateBakeIngredient(bakeUuid, ingredientDeltaUuid, payload)
     call.respond(HttpStatusCode.NoContent)
   }
 }

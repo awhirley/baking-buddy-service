@@ -16,6 +16,8 @@ import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
+import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
+import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.and
@@ -318,7 +320,7 @@ class BakeRepositoryImpl : BakeRepository {
   override suspend fun updateBakeInstruction(
     bakeId: Uuid,
     instructionDeltaId: Uuid,
-    description: String,
+    payload: UpdateBakeInstructionPayload,
   ): Unit =
     transaction {
       BakeInstructionsTable
@@ -337,7 +339,34 @@ class BakeRepositoryImpl : BakeRepository {
         (BakeInstructionsTable.bake_id eq bakeId) and
           (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
       }) {
-        it[BakeInstructionsTable.description] = description
+        it[BakeInstructionsTable.description] = payload.description
+      }
+    }
+    
+  override suspend fun updateBakeIngredient(
+    bakeId: Uuid,
+    ingredientDeltaId: Uuid,
+    payload: UpdateBakeIngredientPayload,
+  ): Unit =
+    transaction {
+      BakeIngredientsTable
+        .selectAll()
+        .where {
+          (BakeIngredientsTable.bake_id eq bakeId) and
+            (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+        }
+        .singleOrNull()
+        ?: throw NotFoundException(
+          "Bake ingredient",
+          "bakeId=$bakeId, ingredientDeltaId=$ingredientDeltaId",
+        )
+
+      BakeIngredientsTable.update({
+        (BakeIngredientsTable.bake_id eq bakeId) and
+          (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+      }) {
+        it[BakeIngredientsTable.amount] = payload.amount
+        it[BakeIngredientsTable.name] = payload.name
       }
     }
 }
