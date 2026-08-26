@@ -1,5 +1,7 @@
 package com.bakingbuddy.repositories
 
+import BestIngredientDelta
+import BestInstructionDelta
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredientsTable
@@ -27,7 +29,7 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 class BakeRepositoryImpl : BakeRepository {
-  private fun getBestIngredientDeltas(recipeId: Uuid): List<Triple<Uuid, Uuid, Int>> {
+  private fun getBestIngredientDeltas(recipeId: Uuid): List<BestIngredientDelta> {
     val ingredientDeltas =
       IngredientsTable
         .join(
@@ -39,10 +41,12 @@ class BakeRepositoryImpl : BakeRepository {
         ).selectAll()
         .where { IngredientsTable.recipe_id eq recipeId }
         .map { row ->
-          Triple(
-            row[IngredientDeltaTable.id],
-            row[IngredientDeltaTable.ingredient_id],
-            row[IngredientDeltaTable.version],
+          BestIngredientDelta(
+            deltaId = row[IngredientDeltaTable.id],
+            ingredientId = row[IngredientDeltaTable.ingredient_id],
+            version = row[IngredientDeltaTable.version],
+            amount = row[IngredientDeltaTable.amount],
+            name = row[IngredientDeltaTable.name],
           )
         }
 
@@ -61,7 +65,7 @@ class BakeRepositoryImpl : BakeRepository {
     return ingredientDeltas
   }
 
-  private fun getBestInstructionDeltas(recipeId: Uuid): List<Triple<Uuid, Uuid, Int>> {
+  private fun getBestInstructionDeltas(recipeId: Uuid): List<BestInstructionDelta> {
     val instructionDeltas =
       InstructionsTable
         .join(
@@ -73,10 +77,11 @@ class BakeRepositoryImpl : BakeRepository {
         ).selectAll()
         .where { InstructionsTable.recipe_id eq recipeId }
         .map { row ->
-          Triple(
-            row[InstructionDeltaTable.id],
-            row[InstructionDeltaTable.instruction_id],
-            row[InstructionDeltaTable.version],
+          BestInstructionDelta(
+            deltaId = row[InstructionDeltaTable.id],
+            instructionId = row[InstructionDeltaTable.instruction_id],
+            version = row[InstructionDeltaTable.version],
+            description = row[InstructionDeltaTable.description],
           )
         }
 
@@ -116,19 +121,19 @@ class BakeRepositoryImpl : BakeRepository {
         it[BakesTable.start_datetime] = createdAt
       }
 
-      ingredientDeltas.forEach { (deltaId, _, _) ->
+      ingredientDeltas.forEach { delta ->
         BakeIngredientsTable.insert {
           it[BakeIngredientsTable.id] = Uuid.random()
           it[BakeIngredientsTable.bake_id] = bakeId
-          it[BakeIngredientsTable.ingredient_delta_id] = deltaId
+          it[BakeIngredientsTable.ingredient_delta_id] = delta.deltaId
         }
       }
 
-      instructionDeltas.forEach { (deltaId, _, _) ->
+      instructionDeltas.forEach { delta ->
         BakeInstructionsTable.insert {
           it[BakeInstructionsTable.id] = Uuid.random()
           it[BakeInstructionsTable.bake_id] = bakeId
-          it[BakeInstructionsTable.instruction_delta_id] = deltaId
+          it[BakeInstructionsTable.instruction_delta_id] = delta.deltaId
         }
       }
 
@@ -145,12 +150,21 @@ class BakeRepositoryImpl : BakeRepository {
         recipeId = recipeId,
         details = bakeDetail,
         ingredientVersions =
-          ingredientDeltas.map { (_, ingredientId, version) ->
-            BakeIngredientPayload(ingredientId = ingredientId, version = version)
+          ingredientDeltas.map { delta ->
+            BakeIngredientPayload(
+              ingredientId = delta.ingredientId,
+              version = delta.version,
+              amount = delta.amount,
+              name = delta.name,
+            )
           },
         instructionVersions =
-          instructionDeltas.map { (_, instructionId, version) ->
-            BakeInstructionPayload(instructionId = instructionId, version = version)
+          instructionDeltas.map { delta ->
+            BakeInstructionPayload(
+              instructionId = delta.instructionId,
+              version = delta.version,
+              description = delta.description,
+            )
           },
       )
     }
@@ -182,6 +196,8 @@ class BakeRepositoryImpl : BakeRepository {
               BakeIngredientPayload(
                 ingredientId = row[IngredientDeltaTable.ingredient_id],
                 version = row[IngredientDeltaTable.version],
+                amount = row[IngredientDeltaTable.amount],
+                name = row[IngredientDeltaTable.name],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -199,6 +215,7 @@ class BakeRepositoryImpl : BakeRepository {
               BakeInstructionPayload(
                 instructionId = row[InstructionDeltaTable.instruction_id],
                 version = row[InstructionDeltaTable.version],
+                description = row[InstructionDeltaTable.description],
               )
           }.groupBy({ it.first }, { it.second })
 
