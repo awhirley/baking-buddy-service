@@ -162,7 +162,6 @@ class BakeRepositoryImpl : BakeRepository {
             BakeIngredientPayload(
               ingredientId = delta.ingredientId,
               ingredientDeltaId = delta.deltaId,
-              updated = false,
               version = delta.version,
               amount = delta.amount,
               name = delta.name,
@@ -173,7 +172,6 @@ class BakeRepositoryImpl : BakeRepository {
             BakeInstructionPayload(
               instructionId = delta.instructionId,
               instructionDeltaId = delta.deltaId,
-              updated = false,
               version = delta.version,
               description = delta.description,
             )
@@ -210,10 +208,9 @@ class BakeRepositoryImpl : BakeRepository {
               BakeIngredientPayload(
                 ingredientId = row[IngredientDeltaTable.ingredient_id],
                 ingredientDeltaId = if (bakeIngredientAmount != null) null else row[BakeIngredientsTable.ingredient_delta_id],
-                version = row[IngredientDeltaTable.version],
+                version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
                 amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
                 name = bakeIngredientName ?: row[IngredientDeltaTable.name],
-                updated = bakeIngredientAmount != null,
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -232,9 +229,8 @@ class BakeRepositoryImpl : BakeRepository {
               BakeInstructionPayload(
                 instructionId = row[InstructionDeltaTable.instruction_id],
                 instructionDeltaId = if (bakeInstructionDescription != null) null else row[BakeInstructionsTable.instruction_delta_id],
-                version = row[InstructionDeltaTable.version],
+                version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
                 description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
-                updated = bakeInstructionDescription != null,
               )
           }.groupBy({ it.first }, { it.second })
 
