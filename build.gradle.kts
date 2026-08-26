@@ -35,7 +35,7 @@ dependencies {
   implementation("org.jetbrains.exposed:exposed-core:1.4.0")
   implementation("org.jetbrains.exposed:exposed-jdbc:1.4.0")
   implementation("org.jetbrains.exposed:exposed-java-time:1.4.0")
-  implementation("org.postgresql:postgresql:42.7.7")
+  implementation("org.postgresql:postgresql:42.7.13")
 
   implementation(libs.logback.classic)
 
