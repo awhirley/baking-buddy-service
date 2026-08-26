@@ -329,7 +329,6 @@ class BakeRepositoryImpl : BakeRepository {
 
   override suspend fun updateBakeInstruction(
     bakeId: Uuid,
-    instructionDeltaId: Uuid,
     payload: UpdateBakeInstructionPayload,
   ): Unit =
     transaction {
@@ -337,16 +336,16 @@ class BakeRepositoryImpl : BakeRepository {
         .selectAll()
         .where {
           (BakeInstructionsTable.bake_id eq bakeId) and
-            (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
+            (BakeInstructionsTable.instruction_delta_id eq payload.deltaId)
         }.singleOrNull()
         ?: throw NotFoundException(
           "Bake instruction",
-          "bakeId=$bakeId, instructionDeltaId=$instructionDeltaId",
+          "bakeId=$bakeId, instructionDeltaId=${payload.deltaId}",
         )
 
       BakeInstructionsTable.update({
         (BakeInstructionsTable.bake_id eq bakeId) and
-          (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
+          (BakeInstructionsTable.instruction_delta_id eq payload.deltaId)
       }) {
         it[BakeInstructionsTable.description] = payload.description
       }
@@ -354,7 +353,6 @@ class BakeRepositoryImpl : BakeRepository {
 
   override suspend fun updateBakeIngredient(
     bakeId: Uuid,
-    ingredientDeltaId: Uuid,
     payload: UpdateBakeIngredientPayload,
   ): Unit =
     transaction {
@@ -362,16 +360,16 @@ class BakeRepositoryImpl : BakeRepository {
         .selectAll()
         .where {
           (BakeIngredientsTable.bake_id eq bakeId) and
-            (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+            (BakeIngredientsTable.ingredient_delta_id eq payload.deltaId)
         }.singleOrNull()
         ?: throw NotFoundException(
           "Bake ingredient",
-          "bakeId=$bakeId, ingredientDeltaId=$ingredientDeltaId",
+          "bakeId=$bakeId, ingredientDeltaId=${payload.deltaId}",
         )
 
       BakeIngredientsTable.update({
         (BakeIngredientsTable.bake_id eq bakeId) and
-          (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+          (BakeIngredientsTable.ingredient_delta_id eq payload.deltaId)
       }) {
         it[BakeIngredientsTable.amount] = payload.amount
         it[BakeIngredientsTable.name] = payload.name
