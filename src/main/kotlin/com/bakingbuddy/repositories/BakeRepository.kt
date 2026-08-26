@@ -23,7 +23,7 @@ interface BakeRepository {
     instructionDeltaId: Uuid,
     payload: UpdateBakeInstructionPayload,
   )
-  
+
   suspend fun updateBakeIngredient(
     bakeId: Uuid,
     ingredientDeltaId: Uuid,

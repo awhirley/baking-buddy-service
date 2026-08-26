@@ -26,7 +26,7 @@ class BakeService {
     instructionDeltaId: Uuid,
     payload: UpdateBakeInstructionPayload,
   ) = bakeRepository.updateBakeInstruction(bakeId, instructionDeltaId, payload)
-  
+
   suspend fun updateBakeIngredient(
     bakeId: Uuid,
     ingredientDeltaId: Uuid,

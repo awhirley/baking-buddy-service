@@ -207,7 +207,14 @@ class BakeRepositoryImpl : BakeRepository {
             row[BakeIngredientsTable.bake_id] to
               BakeIngredientPayload(
                 ingredientId = row[IngredientDeltaTable.ingredient_id],
-                ingredientDeltaId = if (bakeIngredientAmount != null) null else row[BakeIngredientsTable.ingredient_delta_id],
+                ingredientDeltaId =
+                  if (bakeIngredientAmount !=
+                    null
+                  ) {
+                    null
+                  } else {
+                    row[BakeIngredientsTable.ingredient_delta_id]
+                  },
                 version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
                 amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
                 name = bakeIngredientName ?: row[IngredientDeltaTable.name],
@@ -228,7 +235,14 @@ class BakeRepositoryImpl : BakeRepository {
             row[BakeInstructionsTable.bake_id] to
               BakeInstructionPayload(
                 instructionId = row[InstructionDeltaTable.instruction_id],
-                instructionDeltaId = if (bakeInstructionDescription != null) null else row[BakeInstructionsTable.instruction_delta_id],
+                instructionDeltaId =
+                  if (bakeInstructionDescription !=
+                    null
+                  ) {
+                    null
+                  } else {
+                    row[BakeInstructionsTable.instruction_delta_id]
+                  },
                 version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
                 description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
               )
@@ -324,8 +338,7 @@ class BakeRepositoryImpl : BakeRepository {
         .where {
           (BakeInstructionsTable.bake_id eq bakeId) and
             (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
-        }
-        .singleOrNull()
+        }.singleOrNull()
         ?: throw NotFoundException(
           "Bake instruction",
           "bakeId=$bakeId, instructionDeltaId=$instructionDeltaId",
@@ -338,7 +351,7 @@ class BakeRepositoryImpl : BakeRepository {
         it[BakeInstructionsTable.description] = payload.description
       }
     }
-    
+
   override suspend fun updateBakeIngredient(
     bakeId: Uuid,
     ingredientDeltaId: Uuid,
@@ -350,8 +363,7 @@ class BakeRepositoryImpl : BakeRepository {
         .where {
           (BakeIngredientsTable.bake_id eq bakeId) and
             (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
-        }
-        .singleOrNull()
+        }.singleOrNull()
         ?: throw NotFoundException(
           "Bake ingredient",
           "bakeId=$bakeId, ingredientDeltaId=$ingredientDeltaId",

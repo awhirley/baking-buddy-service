@@ -85,7 +85,7 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     bakeService.updateBakeInstruction(bakeUuid, instructionDeltaUuid, payload)
     call.respond(HttpStatusCode.NoContent)
   }
-  
+
   patch(path = "/api/bakes/{bake_id}/ingredient/{ingredient_delta_id}") {
     val bakeId =
       call.parameters["bake_id"]
