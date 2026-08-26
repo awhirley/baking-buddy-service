@@ -14,10 +14,13 @@ import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
+import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
+import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.repositories.helpers.BestIngredientDelta
 import com.bakingbuddy.repositories.helpers.BestInstructionDelta
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -126,6 +129,9 @@ class BakeRepositoryImpl : BakeRepository {
           it[BakeIngredientsTable.id] = Uuid.random()
           it[BakeIngredientsTable.bake_id] = bakeId
           it[BakeIngredientsTable.ingredient_delta_id] = delta.deltaId
+          it[BakeIngredientsTable.amount] = null
+          it[BakeIngredientsTable.name] = null
+          it[BakeIngredientsTable.notes] = null
         }
       }
 
@@ -134,6 +140,8 @@ class BakeRepositoryImpl : BakeRepository {
           it[BakeInstructionsTable.id] = Uuid.random()
           it[BakeInstructionsTable.bake_id] = bakeId
           it[BakeInstructionsTable.instruction_delta_id] = delta.deltaId
+          it[BakeInstructionsTable.description] = null
+          it[BakeInstructionsTable.notes] = null
         }
       }
 
@@ -153,6 +161,7 @@ class BakeRepositoryImpl : BakeRepository {
           ingredientDeltas.map { delta ->
             BakeIngredientPayload(
               ingredientId = delta.ingredientId,
+              ingredientDeltaId = delta.deltaId,
               version = delta.version,
               amount = delta.amount,
               name = delta.name,
@@ -162,6 +171,7 @@ class BakeRepositoryImpl : BakeRepository {
           instructionDeltas.map { delta ->
             BakeInstructionPayload(
               instructionId = delta.instructionId,
+              instructionDeltaId = delta.deltaId,
               version = delta.version,
               description = delta.description,
             )
@@ -192,12 +202,22 @@ class BakeRepositoryImpl : BakeRepository {
           ).selectAll()
           .where { BakeIngredientsTable.bake_id inList bakeIds }
           .map { row ->
+            val bakeIngredientAmount = row[BakeIngredientsTable.amount]
+            val bakeIngredientName = row[BakeIngredientsTable.name]
             row[BakeIngredientsTable.bake_id] to
               BakeIngredientPayload(
                 ingredientId = row[IngredientDeltaTable.ingredient_id],
-                version = row[IngredientDeltaTable.version],
-                amount = row[IngredientDeltaTable.amount],
-                name = row[IngredientDeltaTable.name],
+                ingredientDeltaId =
+                  if (bakeIngredientAmount !=
+                    null
+                  ) {
+                    null
+                  } else {
+                    row[BakeIngredientsTable.ingredient_delta_id]
+                  },
+                version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
+                amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
+                name = bakeIngredientName ?: row[IngredientDeltaTable.name],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -211,11 +231,20 @@ class BakeRepositoryImpl : BakeRepository {
           ).selectAll()
           .where { BakeInstructionsTable.bake_id inList bakeIds }
           .map { row ->
+            val bakeInstructionDescription = row[BakeInstructionsTable.description]
             row[BakeInstructionsTable.bake_id] to
               BakeInstructionPayload(
                 instructionId = row[InstructionDeltaTable.instruction_id],
-                version = row[InstructionDeltaTable.version],
-                description = row[InstructionDeltaTable.description],
+                instructionDeltaId =
+                  if (bakeInstructionDescription !=
+                    null
+                  ) {
+                    null
+                  } else {
+                    row[BakeInstructionsTable.instruction_delta_id]
+                  },
+                version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
+                description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -296,5 +325,56 @@ class BakeRepositoryImpl : BakeRepository {
       BakeIngredientsTable.deleteWhere { BakeIngredientsTable.bake_id eq id }
       BakeInstructionsTable.deleteWhere { BakeInstructionsTable.bake_id eq id }
       BakesTable.deleteWhere { BakesTable.id eq id }
+    }
+
+  override suspend fun updateBakeInstruction(
+    bakeId: Uuid,
+    instructionDeltaId: Uuid,
+    payload: UpdateBakeInstructionPayload,
+  ): Unit =
+    transaction {
+      BakeInstructionsTable
+        .selectAll()
+        .where {
+          (BakeInstructionsTable.bake_id eq bakeId) and
+            (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
+        }.singleOrNull()
+        ?: throw NotFoundException(
+          "Bake instruction",
+          "bakeId=$bakeId, instructionDeltaId=$instructionDeltaId",
+        )
+
+      BakeInstructionsTable.update({
+        (BakeInstructionsTable.bake_id eq bakeId) and
+          (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
+      }) {
+        it[BakeInstructionsTable.description] = payload.description
+      }
+    }
+
+  override suspend fun updateBakeIngredient(
+    bakeId: Uuid,
+    ingredientDeltaId: Uuid,
+    payload: UpdateBakeIngredientPayload,
+  ): Unit =
+    transaction {
+      BakeIngredientsTable
+        .selectAll()
+        .where {
+          (BakeIngredientsTable.bake_id eq bakeId) and
+            (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+        }.singleOrNull()
+        ?: throw NotFoundException(
+          "Bake ingredient",
+          "bakeId=$bakeId, ingredientDeltaId=$ingredientDeltaId",
+        )
+
+      BakeIngredientsTable.update({
+        (BakeIngredientsTable.bake_id eq bakeId) and
+          (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+      }) {
+        it[BakeIngredientsTable.amount] = payload.amount
+        it[BakeIngredientsTable.name] = payload.name
+      }
     }
 }
