@@ -44,6 +44,7 @@ fun Route.recipeRoutes(recipeService: RecipeService) {
       requireNotBlank(payload.name, "name")
       requireNotBlankIfPresent(payload.description, "description")
       requireNotBlankIfPresent(payload.recipeSource, "recipeSource")
+      requireNotBlankIfPresent(payload.recipeSourceType, "recipeSourceType")
 
       require(payload.ingredients.isNotEmpty(), "ingredients", "must contain at least one ingredient")
       require(payload.instructions.isNotEmpty(), "instructions", "must contain at least one instruction")

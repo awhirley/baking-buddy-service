@@ -45,6 +45,7 @@ fun createIngredients(
       name = ingredient.name,
       notes = null,
       createdAt = ingredientStatement[IngredientsTable.created_at],
+      order = null,
     )
   }
 
@@ -72,6 +73,7 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
             createdAt = row[IngredientsTable.created_at],
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
+            order = row[IngredientsTable.order],
           )
         }
     }
@@ -89,3 +91,11 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
 
   return ingredients
 }
+
+data class BestIngredientDelta(
+  val deltaId: Uuid,
+  val ingredientId: Uuid,
+  val version: Int,
+  val amount: String,
+  val name: String,
+)

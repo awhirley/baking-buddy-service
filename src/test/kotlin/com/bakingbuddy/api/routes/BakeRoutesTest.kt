@@ -49,11 +49,11 @@ private fun sampleBakeDetail(
   BakeDetail(
     id = id,
     recipeId = recipeId,
-    results = "Golden crust",
     elevation = 5280,
     notes = null,
-    date = null,
     createdAt = Instant.now(),
+    startDatetime = Instant.now(),
+    endDatetime = null,
   )
 
 private fun sampleBake(
@@ -71,8 +71,8 @@ private fun sampleBake(
 private fun validUpdateBakePayload(bakeId: Uuid = Uuid.random()) =
   UpdateBakePayload(
     bakeId = bakeId,
-    date = null,
-    results = "Golden crust",
+    startDatetime = Instant.now(),
+    endDatetime = null,
     elevation = 5280,
     notes = "Great bake!",
   )
@@ -235,7 +235,7 @@ class BakeRoutesTest {
       val response =
         client.patch("/api/bakes") {
           contentType(ContentType.Application.Json)
-          setBody("""{"results":"Golden crust"}""")
+          setBody("""{"notes":"Golden crust"}""")
         }
 
       response.status shouldBe HttpStatusCode.BadRequest

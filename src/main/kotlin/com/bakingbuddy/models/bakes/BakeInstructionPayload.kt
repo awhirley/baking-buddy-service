@@ -7,4 +7,5 @@ import kotlin.uuid.Uuid
 data class BakeInstructionPayload(
   val instructionId: Uuid,
   val version: Int,
+  val description: String,
 )

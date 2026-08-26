@@ -41,6 +41,7 @@ fun createInstructions(
       notes = null,
       createdAt = instructionStatement[InstructionsTable.created_at],
       description = description,
+      order = null,
     )
   }
 
@@ -66,6 +67,7 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
           notes = row[InstructionsTable.notes],
           createdAt = row[InstructionsTable.created_at],
           description = row[InstructionDeltaTable.description],
+          order = row[InstructionsTable.order],
         )
       }
 
@@ -83,3 +85,10 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
 
   return instructions
 }
+
+data class BestInstructionDelta(
+  val deltaId: Uuid,
+  val instructionId: Uuid,
+  val version: Int,
+  val description: String,
+)

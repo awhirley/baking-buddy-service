@@ -6,6 +6,8 @@ object BakeInstructionsTable : Table("bake_instructions") {
   val id = uuid("id")
   val bake_id = uuid("bake_id").references(BakesTable.id)
   val instruction_delta_id = uuid("instruction_delta_id").references(InstructionDeltaTable.id)
+  val description = text("description").nullable()
+  val notes = text("notes").nullable()
 
   override val primaryKey = PrimaryKey(id)
 }

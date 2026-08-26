@@ -9,6 +9,7 @@ object InstructionsTable : Table("instructions") {
   val best_version = integer("best_version")
   val notes = text("notes").nullable()
   val created_at = timestamp("created_at")
+  val order = integer("order").nullable()
 
   override val primaryKey = PrimaryKey(id)
 }
