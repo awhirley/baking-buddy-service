@@ -91,3 +91,11 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
 
   return ingredients
 }
+
+data class BestIngredientDelta(
+  val deltaId: Uuid,
+  val ingredientId: Uuid,
+  val version: Int,
+  val amount: String,
+  val name: String,
+)

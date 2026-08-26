@@ -1,7 +1,5 @@
 package com.bakingbuddy.repositories
 
-import BestIngredientDelta
-import BestInstructionDelta
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredientsTable
@@ -17,6 +15,8 @@ import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
+import com.bakingbuddy.repositories.helpers.BestIngredientDelta
+import com.bakingbuddy.repositories.helpers.BestInstructionDelta
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
