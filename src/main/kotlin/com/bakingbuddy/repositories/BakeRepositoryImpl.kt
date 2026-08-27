@@ -191,6 +191,11 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all bakes with ingredients and instructions
   override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
     return transaction {
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+
       val bakeRows =
         BakesTable
           .selectAll()
@@ -283,6 +288,11 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all details of all bakes
   override suspend fun listBakes(recipeId: Uuid): List<BakeDetail> {
     return transaction {
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+
       val bakeRows =
         BakesTable
           .selectAll()
@@ -307,6 +317,86 @@ class BakeRepositoryImpl : BakeRepository {
       }
     }
   }
+
+  // Load a single bake with ingredients and instructions
+  override suspend fun getBake(bakeId: Uuid): Bake =
+    transaction {
+      val row =
+        BakesTable
+          .selectAll()
+          .where { BakesTable.id eq bakeId }
+          .singleOrNull()
+          ?: throw NotFoundException("Bake", bakeId.toString())
+
+      val ingredientVersions =
+        BakeIngredientsTable
+          .join(
+            IngredientDeltaTable,
+            JoinType.INNER,
+            onColumn = BakeIngredientsTable.ingredient_delta_id,
+            otherColumn = IngredientDeltaTable.id,
+          ).selectAll()
+          .where { BakeIngredientsTable.bake_id eq bakeId }
+          .map { row ->
+            val bakeIngredientAmount = row[BakeIngredientsTable.amount]
+            val bakeIngredientName = row[BakeIngredientsTable.name]
+            BakeIngredientPayload(
+              ingredientId = row[IngredientDeltaTable.ingredient_id],
+              ingredientDeltaId =
+                if (bakeIngredientAmount != null) {
+                  null
+                } else {
+                  row[BakeIngredientsTable.ingredient_delta_id]
+                },
+              version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
+              amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
+              name = bakeIngredientName ?: row[IngredientDeltaTable.name],
+            )
+          }
+
+      val instructionVersions =
+        BakeInstructionsTable
+          .join(
+            InstructionDeltaTable,
+            JoinType.INNER,
+            onColumn = BakeInstructionsTable.instruction_delta_id,
+            otherColumn = InstructionDeltaTable.id,
+          ).selectAll()
+          .where { BakeInstructionsTable.bake_id eq bakeId }
+          .map { row ->
+            val bakeInstructionDescription = row[BakeInstructionsTable.description]
+            BakeInstructionPayload(
+              instructionId = row[InstructionDeltaTable.instruction_id],
+              instructionDeltaId =
+                if (bakeInstructionDescription != null) {
+                  null
+                } else {
+                  row[BakeInstructionsTable.instruction_delta_id]
+                },
+              version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
+              description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
+            )
+          }
+
+      val bakeDetail =
+        BakeDetail(
+          id = bakeId,
+          recipeId = row[BakesTable.recipe_id],
+          elevation = row[BakesTable.elevation],
+          notes = row[BakesTable.notes],
+          createdAt = row[BakesTable.created_at],
+          startDatetime = row[BakesTable.start_datetime],
+          endDatetime = row[BakesTable.end_datetime],
+        )
+
+      Bake(
+        id = bakeId,
+        recipeId = row[BakesTable.recipe_id],
+        details = bakeDetail,
+        ingredientVersions = ingredientVersions,
+        instructionVersions = instructionVersions,
+      )
+    }
 
   override suspend fun updateBake(payload: UpdateBakePayload): Unit =
     transaction {

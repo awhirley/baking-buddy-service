@@ -15,6 +15,8 @@ interface BakeRepository {
 
   suspend fun listBakes(recipeId: Uuid): List<BakeDetail>
 
+  suspend fun getBake(bakeId: Uuid): Bake
+
   suspend fun updateBake(payload: UpdateBakePayload)
 
   suspend fun deleteBake(id: Uuid)
