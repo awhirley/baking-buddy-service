@@ -98,7 +98,7 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     bakeService.updateBakeIngredient(bakeUuid, payload)
     call.respond(HttpStatusCode.NoContent)
   }
-  
+
   patch(path = "/api/bakes/{bake_id}/complete") {
     val bakeId =
       call.parameters["bake_id"]
@@ -106,7 +106,7 @@ fun Route.bakeRoutes(bakeService: BakeService) {
 
     val bakeUuid = call.requireUuidParam("bake_id")
     val payload = call.receive<CompleteBakePayload>()
-    
+
     bakeService.completeBake(bakeUuid, payload)
     call.respond(HttpStatusCode.NoContent)
   }

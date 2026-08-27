@@ -31,7 +31,7 @@ class BakeService {
     bakeId: Uuid,
     payload: UpdateBakeIngredientPayload,
   ) = bakeRepository.updateBakeIngredient(bakeId, payload)
-  
+
   suspend fun completeBake(
     bakeId: Uuid,
     payload: CompleteBakePayload,

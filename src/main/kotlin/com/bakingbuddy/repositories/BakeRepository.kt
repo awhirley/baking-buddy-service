@@ -28,7 +28,7 @@ interface BakeRepository {
     bakeId: Uuid,
     payload: UpdateBakeIngredientPayload,
   )
-  
+
   suspend fun completeBake(
     bakeId: Uuid,
     payload: CompleteBakePayload,
