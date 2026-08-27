@@ -27,7 +27,7 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     val bake = bakeService.createBake(uuid)
     call.respond(HttpStatusCode.Created, bake)
   }
-  
+
   get(path = "/api/bakes") {
     val bakes = bakeService.listBakes()
     call.respond(bakes)

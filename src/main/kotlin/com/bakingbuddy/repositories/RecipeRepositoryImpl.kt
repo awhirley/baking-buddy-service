@@ -47,7 +47,7 @@ class RecipeRepositoryImpl : RecipeRepository {
 
       val ingredients = getIngredientsForRecipe(id)
       val instructions = getInstructionsForRecipe(id)
-      
+
       val openBakeId =
         BakesTable
           .select(BakesTable.id)
@@ -88,8 +88,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           onColumn = { RecipesTable.id },
           otherColumn = { BakesTable.recipe_id },
           additionalConstraint = { BakesTable.end_datetime.isNull() },
-        )
-        .selectAll()
+        ).selectAll()
         .map { row ->
           RecipeDetail(
             id = row[RecipesTable.id],
@@ -104,7 +103,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             openBakeId = row.getOrNull(BakesTable.id),
           )
         }
-  }
+    }
 
   override suspend fun create(request: CreateRecipePayload): Recipe {
     val recipeId = Uuid.random()
@@ -159,7 +158,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           .selectAll()
           .where { RecipesTable.id eq id }
           .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
-          
+
       val openBakeId =
         BakesTable
           .select(BakesTable.id)
@@ -196,7 +195,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           tags = updatedRow[RecipesTable.tags],
           tools = updatedRow[RecipesTable.tools],
           notes = updatedRow[RecipesTable.notes],
-          openBakeId = openBakeId
+          openBakeId = openBakeId,
         )
 
       Recipe(

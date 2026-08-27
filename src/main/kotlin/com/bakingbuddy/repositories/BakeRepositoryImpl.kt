@@ -285,8 +285,8 @@ class BakeRepositoryImpl : BakeRepository {
       }
     }
   }
-  
-    // Load all details of all bakes
+
+  // Load all details of all bakes
   override suspend fun listBakes(): List<BakeDetail> {
     return transaction {
       val bakeRows =

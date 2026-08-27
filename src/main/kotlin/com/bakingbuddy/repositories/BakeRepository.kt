@@ -14,7 +14,7 @@ interface BakeRepository {
   suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake>
 
   suspend fun listBakes(): List<BakeDetail>
-  
+
   suspend fun listBakesForRecipe(recipeId: Uuid): List<BakeDetail>
 
   suspend fun getBake(bakeId: Uuid): Bake
