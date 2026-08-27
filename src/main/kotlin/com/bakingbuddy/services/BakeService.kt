@@ -2,6 +2,7 @@ package com.bakingbuddy.services
 
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
+import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
@@ -23,13 +24,16 @@ class BakeService {
 
   suspend fun updateBakeInstruction(
     bakeId: Uuid,
-    instructionDeltaId: Uuid,
     payload: UpdateBakeInstructionPayload,
-  ) = bakeRepository.updateBakeInstruction(bakeId, instructionDeltaId, payload)
+  ) = bakeRepository.updateBakeInstruction(bakeId, payload)
 
   suspend fun updateBakeIngredient(
     bakeId: Uuid,
-    ingredientDeltaId: Uuid,
     payload: UpdateBakeIngredientPayload,
-  ) = bakeRepository.updateBakeIngredient(bakeId, ingredientDeltaId, payload)
+  ) = bakeRepository.updateBakeIngredient(bakeId, payload)
+
+  suspend fun completeBake(
+    bakeId: Uuid,
+    payload: CompleteBakePayload,
+  ) = bakeRepository.completeBake(bakeId, payload)
 }

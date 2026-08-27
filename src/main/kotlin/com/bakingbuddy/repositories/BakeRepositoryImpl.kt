@@ -1,5 +1,6 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.errors.ConflictException
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredientsTable
@@ -14,23 +15,29 @@ import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
+import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.repositories.helpers.BestIngredientDelta
 import com.bakingbuddy.repositories.helpers.BestInstructionDelta
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
+@Suppress("TooManyFunctions")
 class BakeRepositoryImpl : BakeRepository {
   private fun getBestIngredientDeltas(recipeId: Uuid): List<BestIngredientDelta> {
     val ingredientDeltas =
@@ -109,6 +116,8 @@ class BakeRepositoryImpl : BakeRepository {
         .selectAll()
         .where { RecipesTable.id eq recipeId }
         .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+
+      assertNoOpenBake(recipeId)
 
       // Pull the current best_version delta for every ingredient/instruction of this recipe.
       val ingredientDeltas = getBestIngredientDeltas(recipeId)
@@ -329,7 +338,6 @@ class BakeRepositoryImpl : BakeRepository {
 
   override suspend fun updateBakeInstruction(
     bakeId: Uuid,
-    instructionDeltaId: Uuid,
     payload: UpdateBakeInstructionPayload,
   ): Unit =
     transaction {
@@ -337,16 +345,16 @@ class BakeRepositoryImpl : BakeRepository {
         .selectAll()
         .where {
           (BakeInstructionsTable.bake_id eq bakeId) and
-            (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
+            (BakeInstructionsTable.instruction_delta_id eq payload.deltaId)
         }.singleOrNull()
         ?: throw NotFoundException(
           "Bake instruction",
-          "bakeId=$bakeId, instructionDeltaId=$instructionDeltaId",
+          "bakeId=$bakeId, instructionDeltaId=${payload.deltaId}",
         )
 
       BakeInstructionsTable.update({
         (BakeInstructionsTable.bake_id eq bakeId) and
-          (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId)
+          (BakeInstructionsTable.instruction_delta_id eq payload.deltaId)
       }) {
         it[BakeInstructionsTable.description] = payload.description
       }
@@ -354,7 +362,6 @@ class BakeRepositoryImpl : BakeRepository {
 
   override suspend fun updateBakeIngredient(
     bakeId: Uuid,
-    ingredientDeltaId: Uuid,
     payload: UpdateBakeIngredientPayload,
   ): Unit =
     transaction {
@@ -362,19 +369,185 @@ class BakeRepositoryImpl : BakeRepository {
         .selectAll()
         .where {
           (BakeIngredientsTable.bake_id eq bakeId) and
-            (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+            (BakeIngredientsTable.ingredient_delta_id eq payload.deltaId)
         }.singleOrNull()
         ?: throw NotFoundException(
           "Bake ingredient",
-          "bakeId=$bakeId, ingredientDeltaId=$ingredientDeltaId",
+          "bakeId=$bakeId, ingredientDeltaId=${payload.deltaId}",
         )
 
       BakeIngredientsTable.update({
         (BakeIngredientsTable.bake_id eq bakeId) and
-          (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId)
+          (BakeIngredientsTable.ingredient_delta_id eq payload.deltaId)
       }) {
         it[BakeIngredientsTable.amount] = payload.amount
         it[BakeIngredientsTable.name] = payload.name
       }
     }
+
+  override suspend fun completeBake(
+    bakeId: Uuid,
+    payload: CompleteBakePayload,
+  ): Unit =
+    transaction {
+      val now = Instant.now()
+
+      markBakeComplete(bakeId, now)
+
+      BakeIngredientsTable
+        .selectAll()
+        .where { BakeIngredientsTable.bake_id eq bakeId }
+        .toList()
+        .forEach { row -> completeBakeIngredient(row, payload.setDeltasAsBest, now) }
+
+      BakeInstructionsTable
+        .selectAll()
+        .where { BakeInstructionsTable.bake_id eq bakeId }
+        .toList()
+        .forEach { row -> completeBakeInstruction(row, payload.setDeltasAsBest, now) }
+    }
+
+  private fun markBakeComplete(
+    bakeId: Uuid,
+    now: Instant,
+  ) {
+    val bakeRow =
+      BakesTable
+        .selectAll()
+        .where { BakesTable.id eq bakeId }
+        .singleOrNull() ?: throw NotFoundException("Bake", bakeId.toString())
+
+    if (bakeRow[BakesTable.end_datetime] != null) {
+      throw ConflictException("bakeAlreadyComplete")
+    }
+
+    BakesTable.update({ BakesTable.id eq bakeId }) {
+      it[BakesTable.end_datetime] = now
+    }
+  }
+
+  private fun completeBakeIngredient(
+    row: ResultRow,
+    setAsBest: Boolean,
+    now: Instant,
+  ) {
+    val amount = row[BakeIngredientsTable.amount]
+    val name = row[BakeIngredientsTable.name]
+    val notes = row[BakeIngredientsTable.notes]
+
+    if (amount == null && name == null) return
+
+    if (amount == null || name == null) {
+      throw DataIntegrityException(
+        "BakeIngredient requires both amount and name to be set. Amount: $amount, Name: $name",
+      )
+    }
+
+    val currentDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
+    val currentDelta =
+      IngredientDeltaTable
+        .selectAll()
+        .where { IngredientDeltaTable.id eq currentDeltaId }
+        .singleOrNull() ?: throw NotFoundException("IngredientDelta", currentDeltaId.toString())
+    val ingredientId = currentDelta[IngredientDeltaTable.ingredient_id]
+
+    val newVersion = nextIngredientDeltaVersion(ingredientId)
+    val newDeltaId = Uuid.random()
+
+    IngredientDeltaTable.insert {
+      it[IngredientDeltaTable.id] = newDeltaId
+      it[IngredientDeltaTable.ingredient_id] = ingredientId
+      it[IngredientDeltaTable.version] = newVersion
+      it[IngredientDeltaTable.amount] = amount
+      it[IngredientDeltaTable.name] = name
+      it[IngredientDeltaTable.notes] = notes
+      it[IngredientDeltaTable.created_at] = now
+    }
+
+    BakeIngredientsTable.update({ BakeIngredientsTable.id eq row[BakeIngredientsTable.id] }) {
+      it[BakeIngredientsTable.ingredient_delta_id] = newDeltaId
+    }
+
+    if (setAsBest) {
+      IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
+        it[IngredientsTable.best_version] = newVersion
+      }
+    }
+  }
+
+  private fun completeBakeInstruction(
+    row: ResultRow,
+    setAsBest: Boolean,
+    now: Instant,
+  ) {
+    val description = row[BakeInstructionsTable.description] ?: return
+    val notes = row[BakeInstructionsTable.notes]
+
+    val currentDeltaId = row[BakeInstructionsTable.instruction_delta_id]
+    val currentDelta =
+      InstructionDeltaTable
+        .selectAll()
+        .where { InstructionDeltaTable.id eq currentDeltaId }
+        .singleOrNull() ?: throw NotFoundException("InstructionDelta", currentDeltaId.toString())
+    val instructionId = currentDelta[InstructionDeltaTable.instruction_id]
+
+    val newVersion = nextInstructionDeltaVersion(instructionId)
+    val newDeltaId = Uuid.random()
+
+    InstructionDeltaTable.insert {
+      it[InstructionDeltaTable.id] = newDeltaId
+      it[InstructionDeltaTable.instruction_id] = instructionId
+      it[InstructionDeltaTable.version] = newVersion
+      it[InstructionDeltaTable.description] = description
+      it[InstructionDeltaTable.notes] = notes
+      it[InstructionDeltaTable.created_at] = now
+    }
+
+    BakeInstructionsTable.update({ BakeInstructionsTable.id eq row[BakeInstructionsTable.id] }) {
+      it[BakeInstructionsTable.instruction_delta_id] = newDeltaId
+    }
+
+    if (setAsBest) {
+      InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
+        it[InstructionsTable.best_version] = newVersion
+      }
+    }
+  }
+
+  private fun nextIngredientDeltaVersion(ingredientId: Uuid): Int {
+    val maxVersionExpr = IngredientDeltaTable.version.max()
+    val highestVersion =
+      IngredientDeltaTable
+        .select(maxVersionExpr)
+        .where { IngredientDeltaTable.ingredient_id eq ingredientId }
+        .single()[maxVersionExpr] ?: 0
+
+    return highestVersion + 1
+  }
+
+  private fun nextInstructionDeltaVersion(instructionId: Uuid): Int {
+    val maxVersionExpr = InstructionDeltaTable.version.max()
+    val highestVersion =
+      InstructionDeltaTable
+        .select(maxVersionExpr)
+        .where { InstructionDeltaTable.instruction_id eq instructionId }
+        .single()[maxVersionExpr] ?: 0
+
+    return highestVersion + 1
+  }
+
+  private fun assertNoOpenBake(recipeId: Uuid) {
+    val openBakeExists =
+      BakesTable
+        .selectAll()
+        .where {
+          (BakesTable.recipe_id eq recipeId) and
+            (BakesTable.end_datetime.isNull())
+        }.limit(1)
+        .any()
+
+    if (openBakeExists) {
+      throw ConflictException("existingOpenBake")
+    }
+  }
 }
