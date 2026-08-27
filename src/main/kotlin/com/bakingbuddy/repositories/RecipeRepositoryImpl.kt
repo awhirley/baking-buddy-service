@@ -21,8 +21,11 @@ import com.bakingbuddy.repositories.helpers.createIngredients
 import com.bakingbuddy.repositories.helpers.createInstructions
 import com.bakingbuddy.repositories.helpers.getIngredientsForRecipe
 import com.bakingbuddy.repositories.helpers.getInstructionsForRecipe
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.leftJoin
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -45,6 +48,15 @@ class RecipeRepositoryImpl : RecipeRepository {
       val ingredients = getIngredientsForRecipe(id)
       val instructions = getInstructionsForRecipe(id)
 
+      val openBakeId =
+        BakesTable
+          .select(BakesTable.id)
+          .where {
+            (BakesTable.recipe_id eq id) and
+              (BakesTable.end_datetime.isNull())
+          }.firstOrNull()
+          ?.get(BakesTable.id)
+
       val details =
         RecipeDetail(
           id = recipeRow[RecipesTable.id],
@@ -56,6 +68,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           tags = recipeRow[RecipesTable.tags],
           tools = recipeRow[RecipesTable.tools],
           notes = recipeRow[RecipesTable.notes],
+          openBakeId = openBakeId,
         )
 
       Recipe(
@@ -70,7 +83,12 @@ class RecipeRepositoryImpl : RecipeRepository {
   override suspend fun listAll(): List<RecipeDetail> =
     transaction {
       RecipesTable
-        .selectAll()
+        .leftJoin(
+          BakesTable,
+          onColumn = { RecipesTable.id },
+          otherColumn = { BakesTable.recipe_id },
+          additionalConstraint = { BakesTable.end_datetime.isNull() },
+        ).selectAll()
         .map { row ->
           RecipeDetail(
             id = row[RecipesTable.id],
@@ -82,6 +100,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             createdAt = row[RecipesTable.created_at],
             tools = row[RecipesTable.tools],
             notes = row[RecipesTable.notes],
+            openBakeId = row.getOrNull(BakesTable.id),
           )
         }
     }
@@ -117,6 +136,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           tools = request.tools,
           createdAt = createdAt,
           notes = null,
+          openBakeId = null,
         )
 
       Recipe(
@@ -138,6 +158,15 @@ class RecipeRepositoryImpl : RecipeRepository {
           .selectAll()
           .where { RecipesTable.id eq id }
           .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
+
+      val openBakeId =
+        BakesTable
+          .select(BakesTable.id)
+          .where {
+            (BakesTable.recipe_id eq id) and
+              (BakesTable.end_datetime.isNull())
+          }.firstOrNull()
+          ?.get(BakesTable.id)
 
       // Only touches Recipes table columns — ingredients/instructions are untouched here
       RecipesTable.update({ RecipesTable.id eq id }) {
@@ -166,6 +195,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           tags = updatedRow[RecipesTable.tags],
           tools = updatedRow[RecipesTable.tools],
           notes = updatedRow[RecipesTable.notes],
+          openBakeId = openBakeId,
         )
 
       Recipe(

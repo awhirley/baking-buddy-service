@@ -118,14 +118,14 @@ class BakeRoutesTest {
     testApplication {
       val service = mockk<BakeService>()
       val recipeId = Uuid.random()
-      coEvery { service.listBakes(recipeId) } returns
+      coEvery { service.listBakesForRecipe(recipeId) } returns
         listOf(sampleBakeDetail(recipeId = recipeId), sampleBakeDetail(recipeId = recipeId))
       val client = setupTestApp(service)
 
       val response = client.get("/api/bakes/recipe/$recipeId")
 
       response.status shouldBe HttpStatusCode.OK
-      coVerify(exactly = 1) { service.listBakes(recipeId) }
+      coVerify(exactly = 1) { service.listBakesForRecipe(recipeId) }
     }
 
   @Test
@@ -133,7 +133,7 @@ class BakeRoutesTest {
     testApplication {
       val service = mockk<BakeService>()
       val recipeId = Uuid.random()
-      coEvery { service.listBakes(recipeId) } returns emptyList()
+      coEvery { service.listBakesForRecipe(recipeId) } returns emptyList()
       val client = setupTestApp(service)
 
       val response = client.get("/api/bakes/recipe/$recipeId")
@@ -151,7 +151,7 @@ class BakeRoutesTest {
       val response = client.get("/api/bakes/recipe/not-a-uuid")
 
       response.status shouldBe HttpStatusCode.BadRequest
-      coVerify(exactly = 0) { service.listBakes(any()) }
+      coVerify(exactly = 0) { service.listBakesForRecipe(any()) }
     }
 
   // ---------------------------------------------------------------

@@ -23,6 +23,7 @@ import com.bakingbuddy.repositories.helpers.BestIngredientDelta
 import com.bakingbuddy.repositories.helpers.BestInstructionDelta
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
@@ -286,7 +287,37 @@ class BakeRepositoryImpl : BakeRepository {
   }
 
   // Load all details of all bakes
-  override suspend fun listBakes(recipeId: Uuid): List<BakeDetail> {
+  override suspend fun listBakes(): List<BakeDetail> {
+    return transaction {
+      val bakeRows =
+        BakesTable
+          .selectAll()
+          .orderBy(
+            BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST,
+            BakesTable.start_datetime to SortOrder.DESC,
+          ).toList()
+
+      if (bakeRows.isEmpty()) return@transaction emptyList()
+
+      val bakeIds = bakeRows.map { it[BakesTable.id] }
+
+      bakeRows.map { row ->
+        val bakeId = row[BakesTable.id]
+        BakeDetail(
+          id = bakeId,
+          recipeId = row[BakesTable.recipe_id],
+          elevation = row[BakesTable.elevation],
+          notes = row[BakesTable.notes],
+          createdAt = row[BakesTable.created_at],
+          startDatetime = row[BakesTable.start_datetime],
+          endDatetime = row[BakesTable.end_datetime],
+        )
+      }
+    }
+  }
+
+  // Load all details of all bakes for a certain recipe
+  override suspend fun listBakesForRecipe(recipeId: Uuid): List<BakeDetail> {
     return transaction {
       RecipesTable
         .selectAll()
