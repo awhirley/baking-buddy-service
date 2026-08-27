@@ -60,6 +60,7 @@ private fun sampleRecipe(id: Uuid = Uuid.random()): Recipe =
         tools = null,
         notes = null,
         createdAt = Instant.now(),
+        openBakeId = null,
       ),
     ingredients = emptyList(),
     instructions = emptyList(),
@@ -76,6 +77,7 @@ private fun sampleRecipeDetail(id: Uuid = Uuid.random()): RecipeDetail =
     tools = null,
     notes = null,
     createdAt = Instant.now(),
+    openBakeId = null,
   )
 
 private fun sampleIngredient(
