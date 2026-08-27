@@ -3,6 +3,7 @@ package com.bakingbuddy.api.routes
 import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.requireUuidParam
 import com.bakingbuddy.api.errors.validate
+import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.services.BakeService
@@ -98,8 +99,15 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     call.respond(HttpStatusCode.NoContent)
   }
   
-  patch(path = "/api/bakes") {
-    bakeService.updateBake(call.receive())
+  patch(path = "/api/bakes/{bake_id}/complete") {
+    val bakeId =
+      call.parameters["bake_id"]
+        ?: throw BadRequestException("Path parameter 'bake_id' must be provided")
+
+    val bakeUuid = call.requireUuidParam("bake_id")
+    val payload = call.receive<CompleteBakePayload>()
+    
+    bakeService.completeBake(bakeUuid, payload)
     call.respond(HttpStatusCode.NoContent)
   }
 }

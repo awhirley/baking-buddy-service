@@ -2,6 +2,7 @@ package com.bakingbuddy.repositories
 
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
+import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
@@ -26,5 +27,10 @@ interface BakeRepository {
   suspend fun updateBakeIngredient(
     bakeId: Uuid,
     payload: UpdateBakeIngredientPayload,
+  )
+  
+  suspend fun completeBake(
+    bakeId: Uuid,
+    payload: CompleteBakePayload,
   )
 }
