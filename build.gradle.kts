@@ -2,7 +2,7 @@
 plugins {
   alias(libs.plugins.kotlin.jvm)
   alias(ktorLibs.plugins.ktor)
-  kotlin("plugin.serialization") version "2.4.0"
+  kotlin("plugin.serialization") version "2.4.10"
   id("dev.detekt") version ("2.0.0-alpha.6")
   id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
 }
@@ -35,7 +35,7 @@ dependencies {
   implementation("org.jetbrains.exposed:exposed-core:1.4.0")
   implementation("org.jetbrains.exposed:exposed-jdbc:1.4.0")
   implementation("org.jetbrains.exposed:exposed-java-time:1.4.0")
-  implementation("org.postgresql:postgresql:42.7.7")
+  implementation("org.postgresql:postgresql:42.7.13")
 
   implementation(libs.logback.classic)
 
