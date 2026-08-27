@@ -8,7 +8,7 @@ object InstructionDeltaTable : Table("instruction_delta") {
   val instruction_id = uuid("instruction_id")
   val version = integer("version")
   val description = text("description")
-  val notes = text("notes")
+  val notes = text("notes").nullable()
   val created_at = timestamp("created_at")
 
   override val primaryKey = PrimaryKey(id)

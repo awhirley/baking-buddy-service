@@ -3,6 +3,7 @@ package com.bakingbuddy.api.routes
 import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.requireUuidParam
 import com.bakingbuddy.api.errors.validate
+import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.services.BakeService
@@ -64,39 +65,28 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     call.respond(HttpStatusCode.NoContent)
   }
 
-  patch(path = "/api/bakes/{bake_id}/instruction/{instruction_delta_id}") {
+  patch(path = "/api/bakes/{bake_id}/instruction") {
     val bakeId =
       call.parameters["bake_id"]
         ?: throw BadRequestException("Path parameter 'bake_id' must be provided")
 
-    val instructionId =
-      call.parameters["instruction_delta_id"]
-        ?: throw BadRequestException("Path parameter 'instruction_delta_id' must be provided")
-
     val bakeUuid = call.requireUuidParam("bake_id")
-    val instructionDeltaUuid = call.requireUuidParam("instruction_delta_id")
-
     val payload = call.receive<UpdateBakeInstructionPayload>()
 
     validate {
       requireNotBlank(payload.description, "description")
     }
 
-    bakeService.updateBakeInstruction(bakeUuid, instructionDeltaUuid, payload)
+    bakeService.updateBakeInstruction(bakeUuid, payload)
     call.respond(HttpStatusCode.NoContent)
   }
 
-  patch(path = "/api/bakes/{bake_id}/ingredient/{ingredient_delta_id}") {
+  patch(path = "/api/bakes/{bake_id}/ingredient") {
     val bakeId =
       call.parameters["bake_id"]
         ?: throw BadRequestException("Path parameter 'bake_id' must be provided")
 
-    val ingredientId =
-      call.parameters["ingredient_delta_id"]
-        ?: throw BadRequestException("Path parameter 'ingredient_delta_id' must be provided")
-
     val bakeUuid = call.requireUuidParam("bake_id")
-    val ingredientDeltaUuid = call.requireUuidParam("ingredient_delta_id")
 
     val payload = call.receive<UpdateBakeIngredientPayload>()
 
@@ -105,7 +95,19 @@ fun Route.bakeRoutes(bakeService: BakeService) {
       requireNotBlank(payload.name, "name")
     }
 
-    bakeService.updateBakeIngredient(bakeUuid, ingredientDeltaUuid, payload)
+    bakeService.updateBakeIngredient(bakeUuid, payload)
+    call.respond(HttpStatusCode.NoContent)
+  }
+
+  patch(path = "/api/bakes/{bake_id}/complete") {
+    val bakeId =
+      call.parameters["bake_id"]
+        ?: throw BadRequestException("Path parameter 'bake_id' must be provided")
+
+    val bakeUuid = call.requireUuidParam("bake_id")
+    val payload = call.receive<CompleteBakePayload>()
+
+    bakeService.completeBake(bakeUuid, payload)
     call.respond(HttpStatusCode.NoContent)
   }
 }
