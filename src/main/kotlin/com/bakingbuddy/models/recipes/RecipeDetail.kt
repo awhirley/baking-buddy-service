@@ -15,5 +15,6 @@ data class RecipeDetail(
   val tags: List<String>?,
   val tools: List<String>?,
   val notes: String?,
+  val openBakeId: Uuid?,
   @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )
