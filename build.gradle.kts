@@ -4,7 +4,7 @@ plugins {
   alias(ktorLibs.plugins.ktor)
   kotlin("plugin.serialization") version "2.4.10"
   id("dev.detekt") version ("2.0.0-alpha.6")
-  id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
+  id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 
 group = "com.bakingbuddy"
@@ -42,7 +42,7 @@ dependencies {
   testImplementation(kotlin("test"))
   testImplementation(ktorLibs.server.testHost)
   testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
-  testImplementation("io.kotest:kotest-assertions-core:5.9.1")
+  testImplementation("io.kotest:kotest-assertions-core:6.2.4")
   testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("io.ktor:ktor-server-test-host")
   testImplementation("io.ktor:ktor-client-content-negotiation")
