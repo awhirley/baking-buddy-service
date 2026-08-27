@@ -50,6 +50,17 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     call.respond(bakes)
   }
 
+  get(path = "/api/bakes/{id}") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
+
+    val uuid = call.requireUuidParam("id")
+    val bake = bakeService.getBake(uuid)
+
+    call.respond(bake)
+  }
+
   patch(path = "/api/bakes") {
     bakeService.updateBake(call.receive())
     call.respond(HttpStatusCode.NoContent)

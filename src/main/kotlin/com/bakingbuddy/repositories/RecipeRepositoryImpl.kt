@@ -205,21 +205,14 @@ class RecipeRepositoryImpl : RecipeRepository {
         it[IngredientDeltaTable.created_at] = createdAt
       }
 
-      if (request.setAsBestVersion ?: false) {
-        IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
-          it[IngredientsTable.best_version] = newVersion
-        }
+      IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
+        it[IngredientsTable.best_version] = newVersion
       }
 
       Ingredient(
         id = ingredientId,
         recipeId = ingredientRow[IngredientsTable.recipe_id],
-        bestVersion =
-          if (request.setAsBestVersion ?: false) {
-            newVersion
-          } else {
-            ingredientRow[IngredientsTable.best_version]
-          },
+        bestVersion = newVersion,
         notes = ingredientRow[IngredientsTable.notes],
         createdAt = ingredientRow[IngredientsTable.created_at],
         amount = request.amount,
@@ -256,23 +249,10 @@ class RecipeRepositoryImpl : RecipeRepository {
         it[InstructionDeltaTable.created_at] = createdAt
       }
 
-      if (request.setAsBestVersion ?: false) {
-        InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
-          it[InstructionsTable.best_version] = newVersion
-        }
-      }
-
       Instruction(
         id = instructionId,
         recipeId = instructionRow[InstructionsTable.recipe_id],
-        bestVersion =
-          if (request.setAsBestVersion
-            ?: false
-          ) {
-            newVersion
-          } else {
-            instructionRow[InstructionsTable.best_version]
-          },
+        bestVersion = newVersion,
         notes = instructionRow[InstructionsTable.notes],
         createdAt = instructionRow[InstructionsTable.created_at],
         description = request.description,
