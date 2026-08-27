@@ -27,6 +27,11 @@ fun Route.bakeRoutes(bakeService: BakeService) {
     val bake = bakeService.createBake(uuid)
     call.respond(HttpStatusCode.Created, bake)
   }
+  
+  get(path = "/api/bakes") {
+    val bakes = bakeService.listBakes()
+    call.respond(bakes)
+  }
 
   get(path = "/api/bakes/recipe/{id}") {
     val id =
@@ -34,7 +39,7 @@ fun Route.bakeRoutes(bakeService: BakeService) {
         ?: throw BadRequestException("Path parameter 'id' must be provided")
 
     val uuid = call.requireUuidParam("id")
-    val bakes = bakeService.listBakes(uuid)
+    val bakes = bakeService.listBakesForRecipe(uuid)
 
     call.respond(bakes)
   }

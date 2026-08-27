@@ -14,7 +14,9 @@ class BakeService {
 
   suspend fun createBake(recipeId: Uuid): Bake = bakeRepository.createBake(recipeId)
 
-  suspend fun listBakes(recipeId: Uuid): List<BakeDetail> = bakeRepository.listBakes(recipeId)
+  suspend fun listBakes(): List<BakeDetail> = bakeRepository.listBakes()
+  
+  suspend fun listBakesForRecipe(recipeId: Uuid): List<BakeDetail> = bakeRepository.listBakesForRecipe(recipeId)
 
   suspend fun getBake(bakeId: Uuid): Bake = bakeRepository.getBake(bakeId)
 
