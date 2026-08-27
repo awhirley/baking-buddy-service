@@ -3,7 +3,6 @@ package com.bakingbuddy.repositories
 import com.bakingbuddy.api.errors.ConflictException
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
-import com.bakingbuddy.api.errors.UnprocessableEntityException
 import com.bakingbuddy.database.BakeIngredientsTable
 import com.bakingbuddy.database.BakeInstructionsTable
 import com.bakingbuddy.database.BakesTable
@@ -439,7 +438,9 @@ class BakeRepositoryImpl : BakeRepository {
     if (amount == null && name == null) return
 
     if (amount == null || name == null) {
-      throw DataIntegrityException("BakeIngredient requires both amount and name to be set. Amount: $amount, Name: $name")
+      throw DataIntegrityException(
+        "BakeIngredient requires both amount and name to be set. Amount: $amount, Name: $name",
+      )
     }
 
     val currentDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
@@ -542,12 +543,11 @@ class BakeRepositoryImpl : BakeRepository {
         .where {
           (BakesTable.recipe_id eq recipeId) and
             (BakesTable.end_datetime.isNull())
-        }
-        .limit(1)
+        }.limit(1)
         .any()
 
     if (openBakeExists) {
       throw ConflictException("existingOpenBake")
     }
-  }  
+  }
 }
