@@ -42,7 +42,7 @@ dependencies {
   testImplementation(kotlin("test"))
   testImplementation(ktorLibs.server.testHost)
   testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
-  testImplementation("io.kotest:kotest-assertions-core:5.9.1")
+  testImplementation("io.kotest:kotest-assertions-core:6.2.4")
   testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("io.ktor:ktor-server-test-host")
   testImplementation("io.ktor:ktor-client-content-negotiation")
