@@ -3,6 +3,7 @@ package com.bakingbuddy.repositories
 import com.bakingbuddy.api.errors.ConflictException
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
+import com.bakingbuddy.api.errors.UnprocessableEntityException
 import com.bakingbuddy.database.BakeIngredientsTable
 import com.bakingbuddy.database.BakeInstructionsTable
 import com.bakingbuddy.database.BakesTable
@@ -26,6 +27,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -115,6 +117,8 @@ class BakeRepositoryImpl : BakeRepository {
         .selectAll()
         .where { RecipesTable.id eq recipeId }
         .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+
+      assertNoOpenBake(recipeId)
 
       // Pull the current best_version delta for every ingredient/instruction of this recipe.
       val ingredientDeltas = getBestIngredientDeltas(recipeId)
@@ -415,8 +419,7 @@ class BakeRepositoryImpl : BakeRepository {
         .singleOrNull() ?: throw NotFoundException("Bake", bakeId.toString())
 
     if (bakeRow[BakesTable.end_datetime] != null) {
-      // TODO
-      throw ConflictException("Bake")
+      throw ConflictException("bakeAlreadyComplete")
     }
 
     BakesTable.update({ BakesTable.id eq bakeId }) {
@@ -436,8 +439,7 @@ class BakeRepositoryImpl : BakeRepository {
     if (amount == null && name == null) return
 
     if (amount == null || name == null) {
-      // TODO
-      throw DataIntegrityException("BakeIngredient")
+      throw DataIntegrityException("BakeIngredient requires both amount and name to be set. Amount: $amount, Name: $name")
     }
 
     val currentDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
@@ -532,4 +534,20 @@ class BakeRepositoryImpl : BakeRepository {
 
     return highestVersion + 1
   }
+
+  private fun assertNoOpenBake(recipeId: Uuid) {
+    val openBakeExists =
+      BakesTable
+        .selectAll()
+        .where {
+          (BakesTable.recipe_id eq recipeId) and
+            (BakesTable.end_datetime.isNull())
+        }
+        .limit(1)
+        .any()
+
+    if (openBakeExists) {
+      throw ConflictException("existingOpenBake")
+    }
+  }  
 }
