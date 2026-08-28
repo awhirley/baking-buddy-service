@@ -279,6 +279,10 @@ class RecipeRepositoryImpl : RecipeRepository {
         it[InstructionDeltaTable.created_at] = createdAt
       }
 
+      InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
+        it[InstructionsTable.best_version] = newVersion
+      }
+
       Instruction(
         id = instructionId,
         recipeId = instructionRow[InstructionsTable.recipe_id],
