@@ -113,10 +113,11 @@ class BakeRepositoryImpl : BakeRepository {
 
   override suspend fun createBake(recipeId: Uuid): Bake =
     transaction {
-      val recipe = RecipesTable
-        .selectAll()
-        .where { RecipesTable.id eq recipeId }
-        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      val recipe =
+        RecipesTable
+          .selectAll()
+          .where { RecipesTable.id eq recipeId }
+          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       assertNoOpenBake(recipeId)
 
@@ -193,10 +194,11 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all bakes with ingredients and instructions
   override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
     return transaction {
-      val recipe = RecipesTable
-        .selectAll()
-        .where { RecipesTable.id eq recipeId }
-        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      val recipe =
+        RecipesTable
+          .selectAll()
+          .where { RecipesTable.id eq recipeId }
+          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       val bakeRows =
         BakesTable
@@ -289,8 +291,8 @@ class BakeRepositoryImpl : BakeRepository {
   }
 
   // Load all details of all bakes
-  override suspend fun listBakes(): List<BakeDetail> {
-    return transaction {
+  override suspend fun listBakes(): List<BakeDetail> =
+    transaction {
       val bakeRows =
         BakesTable
           .join(RecipesTable, JoinType.INNER, onColumn = BakesTable.recipe_id, otherColumn = RecipesTable.id)
@@ -313,15 +315,15 @@ class BakeRepositoryImpl : BakeRepository {
         )
       }
     }
-  }
 
   // Load all details of all bakes for a certain recipe
   override suspend fun listBakesForRecipe(recipeId: Uuid): List<BakeDetail> {
     return transaction {
-      val recipe = RecipesTable
-        .selectAll()
-        .where { RecipesTable.id eq recipeId }
-        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      val recipe =
+        RecipesTable
+          .selectAll()
+          .where { RecipesTable.id eq recipeId }
+          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       val bakeRows =
         BakesTable
@@ -338,7 +340,7 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = bakeId,
           recipeId = row[BakesTable.recipe_id],
-            recipeName = recipe[RecipesTable.name],
+          recipeName = recipe[RecipesTable.name],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],
