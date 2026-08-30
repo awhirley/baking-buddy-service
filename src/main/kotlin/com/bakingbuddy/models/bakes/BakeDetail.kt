@@ -8,6 +8,7 @@ import kotlin.uuid.Uuid
 @Serializable
 data class BakeDetail(
   val id: Uuid,
+  val recipeName: String,
   val recipeId: Uuid,
   val elevation: Int? = null,
   val notes: String? = null,
