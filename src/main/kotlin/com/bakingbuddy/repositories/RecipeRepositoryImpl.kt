@@ -69,6 +69,8 @@ class RecipeRepositoryImpl : RecipeRepository {
           tools = recipeRow[RecipesTable.tools],
           notes = recipeRow[RecipesTable.notes],
           openBakeId = openBakeId,
+          difficultyRating = recipeRow[RecipesTable.difficulty_rating],
+          favorite = recipeRow[RecipesTable.favorite],
         )
 
       Recipe(
@@ -101,6 +103,8 @@ class RecipeRepositoryImpl : RecipeRepository {
             tools = row[RecipesTable.tools],
             notes = row[RecipesTable.notes],
             openBakeId = row.getOrNull(BakesTable.id),
+            difficultyRating = row[RecipesTable.difficulty_rating],
+            favorite = row[RecipesTable.favorite],
           )
         }
     }
@@ -137,6 +141,8 @@ class RecipeRepositoryImpl : RecipeRepository {
           createdAt = createdAt,
           notes = null,
           openBakeId = null,
+          difficultyRating = null,
+          favorite = false,
         )
 
       Recipe(
@@ -176,6 +182,8 @@ class RecipeRepositoryImpl : RecipeRepository {
         request.recipeSourceType?.let { sourceType -> it[RecipesTable.recipe_source_type] = sourceType }
         request.tags?.let { tags -> it[RecipesTable.tags] = tags }
         request.tools?.let { tools -> it[RecipesTable.tools] = tools }
+        request.difficultyRating?.let { difficultyRating -> it[RecipesTable.difficulty_rating] = difficultyRating }
+        request.favorite.let { favorite -> it[RecipesTable.favorite] = favorite }
       }
 
       val updatedRow =
@@ -196,6 +204,8 @@ class RecipeRepositoryImpl : RecipeRepository {
           tools = updatedRow[RecipesTable.tools],
           notes = updatedRow[RecipesTable.notes],
           openBakeId = openBakeId,
+          difficultyRating = updatedRow[RecipesTable.difficulty_rating],
+          favorite = updatedRow[RecipesTable.favorite],
         )
 
       Recipe(

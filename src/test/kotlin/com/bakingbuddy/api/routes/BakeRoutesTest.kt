@@ -2,6 +2,7 @@ package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
+import com.bakingbuddy.models.bakes.BakeRating
 import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.plugins.configureStatusPages
 import com.bakingbuddy.services.BakeService
@@ -72,10 +73,17 @@ private fun sampleBake(
 private fun validUpdateBakePayload(bakeId: Uuid = Uuid.random()) =
   UpdateBakePayload(
     bakeId = bakeId,
-    startDatetime = Instant.now(),
-    endDatetime = null,
     elevation = 5280,
     notes = "Great bake!",
+    ratings =
+      BakeRating(
+        overall = 5,
+        taste = 5,
+        texture = 5,
+        riseStructure = 5,
+        appearance = 5,
+        difficulty = 5,
+      ),
   )
 
 class BakeRoutesTest {
