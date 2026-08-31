@@ -75,14 +75,15 @@ private fun validUpdateBakePayload(bakeId: Uuid = Uuid.random()) =
     bakeId = bakeId,
     elevation = 5280,
     notes = "Great bake!",
-    ratings = BakeRating(
-      overall = 5,
-      taste = 5,
-      texture = 5,
-      riseStructure = 5,
-      appearance = 5,
-      difficulty = 5,
-    )
+    ratings =
+      BakeRating(
+        overall = 5,
+        taste = 5,
+        texture = 5,
+        riseStructure = 5,
+        appearance = 5,
+        difficulty = 5,
+      ),
   )
 
 class BakeRoutesTest {
