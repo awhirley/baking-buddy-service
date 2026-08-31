@@ -65,6 +65,8 @@ private fun sampleRecipe(id: Uuid = Uuid.random()): Recipe =
         notes = null,
         createdAt = Instant.now(),
         openBakeId = null,
+        favorite = false,
+        difficultyRating = 3,
       ),
     ingredients = emptyList(),
     instructions = emptyList(),
@@ -82,6 +84,8 @@ private fun sampleRecipeDetail(id: Uuid = Uuid.random()): RecipeDetail =
     notes = null,
     createdAt = Instant.now(),
     openBakeId = null,
+    favorite = false,
+    difficultyRating = 3,
   )
 
 private fun sampleIngredient(
