@@ -10,4 +10,6 @@ data class EditRecipePayload(
   val recipeSourceType: String? = null,
   val tags: List<String>? = null,
   val tools: List<String>? = null,
+  val favorite: Boolean,
+  val difficultyRating: Int? = null,
 )

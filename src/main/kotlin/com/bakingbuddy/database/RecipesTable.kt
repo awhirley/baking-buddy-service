@@ -14,6 +14,8 @@ object RecipesTable : Table("recipes") {
   val tags = array<String>("tags", TextColumnType())
   val tools = array<String>("tools", TextColumnType())
   val notes = text("notes").nullable()
+  val favorite = bool("favorite")
+  val difficulty_rating = integer("difficulty_rating").nullable()
 
   override val primaryKey = PrimaryKey(id)
 }

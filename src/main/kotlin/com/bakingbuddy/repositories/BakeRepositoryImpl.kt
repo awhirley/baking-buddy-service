@@ -5,6 +5,7 @@ import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredientsTable
 import com.bakingbuddy.database.BakeInstructionsTable
+import com.bakingbuddy.database.BakeRatingsTable
 import com.bakingbuddy.database.BakesTable
 import com.bakingbuddy.database.IngredientDeltaTable
 import com.bakingbuddy.database.IngredientsTable
@@ -15,6 +16,7 @@ import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
+import com.bakingbuddy.models.bakes.BakeRating
 import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
@@ -441,12 +443,47 @@ class BakeRepositoryImpl : BakeRepository {
         .singleOrNull() ?: throw NotFoundException("Bake", payload.bakeId.toString())
 
       BakesTable.update({ BakesTable.id eq payload.bakeId }) {
-        payload.startDatetime?.let { start -> it[BakesTable.start_datetime] = start }
-        payload.endDatetime?.let { end -> it[BakesTable.end_datetime] = end }
         payload.elevation?.let { elevation -> it[BakesTable.elevation] = elevation }
         payload.notes?.let { notes -> it[BakesTable.notes] = notes }
       }
+
+      payload.ratings?.let { rating -> upsertBakeRatings(payload.bakeId, rating) }
     }
+
+  private fun upsertBakeRatings(
+    bakeId: Uuid,
+    rating: BakeRating,
+  ) {
+    val existingId =
+      BakeRatingsTable
+        .selectAll()
+        .where { BakeRatingsTable.bake_id eq bakeId }
+        .singleOrNull()
+        ?.get(BakeRatingsTable.id)
+
+    if (existingId == null) {
+      BakeRatingsTable.insert {
+        it[BakeRatingsTable.id] = Uuid.random()
+        it[BakeRatingsTable.bake_id] = bakeId
+        it[BakeRatingsTable.created_at] = Instant.now()
+        it[BakeRatingsTable.overall] = rating.overall
+        it[BakeRatingsTable.taste] = rating.taste
+        it[BakeRatingsTable.texture] = rating.texture
+        it[BakeRatingsTable.appearance] = rating.appearance
+        it[BakeRatingsTable.rise_structure] = rating.riseStructure
+        it[BakeRatingsTable.difficulty] = rating.difficulty
+      }
+    } else {
+      BakeRatingsTable.update({ BakeRatingsTable.bake_id eq bakeId }) {
+        rating.overall?.let { v -> it[BakeRatingsTable.overall] = v }
+        rating.taste?.let { v -> it[BakeRatingsTable.taste] = v }
+        rating.texture?.let { v -> it[BakeRatingsTable.texture] = v }
+        rating.appearance?.let { v -> it[BakeRatingsTable.appearance] = v }
+        rating.riseStructure?.let { v -> it[BakeRatingsTable.rise_structure] = v }
+        rating.difficulty?.let { v -> it[BakeRatingsTable.difficulty] = v }
+      }
+    }
+  }
 
   override suspend fun deleteBake(id: Uuid): Unit =
     transaction {
