@@ -13,5 +13,5 @@ data class UpdateBakePayload(
   @Serializable(with = PatchFieldSerializer::class)
   val notes: PatchField<String> = PatchField.Absent,
   @Serializable(with = PatchFieldSerializer::class)
-  val ratings: PatchField<UpdateBakeRatingPayload> = PatchField.Absent
+  val ratings: PatchField<UpdateBakeRatingPayload> = PatchField.Absent,
 )

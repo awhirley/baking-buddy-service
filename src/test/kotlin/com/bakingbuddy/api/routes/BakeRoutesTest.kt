@@ -3,7 +3,6 @@ package com.bakingbuddy.api.routes
 import com.bakingbuddy.api.PatchField
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
-import com.bakingbuddy.models.bakes.BakeRating
 import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeRatingPayload
 import com.bakingbuddy.plugins.configureStatusPages
@@ -78,14 +77,16 @@ private fun validUpdateBakePayload(bakeId: Uuid = Uuid.random()) =
     elevation = PatchField.Present(5280),
     notes = PatchField.Present("Great bake!"),
     ratings =
-      PatchField.Present(UpdateBakeRatingPayload(
-        overall = PatchField.Present(5),
-        taste = PatchField.Present(5),
-        texture = PatchField.Present(5),
-        riseStructure = PatchField.Present(5),
-        appearance = PatchField.Present(5),
-        difficulty = PatchField.Present(5),
-      )),
+      PatchField.Present(
+        UpdateBakeRatingPayload(
+          overall = PatchField.Present(5),
+          taste = PatchField.Present(5),
+          texture = PatchField.Present(5),
+          riseStructure = PatchField.Present(5),
+          appearance = PatchField.Present(5),
+          difficulty = PatchField.Present(5),
+        ),
+      ),
   )
 
 class BakeRoutesTest {

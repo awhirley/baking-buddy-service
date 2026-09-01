@@ -156,6 +156,7 @@ class RecipeRepositoryImpl : RecipeRepository {
     }
   }
 
+  @Suppress("CyclomaticComplexMethod")
   override suspend fun editRecipe(
     id: Uuid,
     request: EditRecipePayload,
