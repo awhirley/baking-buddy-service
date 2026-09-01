@@ -1,5 +1,7 @@
 package com.bakingbuddy.api.errors
 
+import com.bakingbuddy.api.PatchField
+import com.bakingbuddy.api.PatchFieldNonNull
 import io.ktor.server.application.ApplicationCall
 import kotlin.uuid.Uuid
 
@@ -33,6 +35,24 @@ class Validator {
     field: String,
   ) {
     if (value != null) require(value.isNotBlank(), field, "must not be blank")
+  }
+
+  fun requireNotBlankIfPresent(
+    value: PatchFieldNonNull<String>,
+    field: String,
+  ) {
+    if (value is PatchFieldNonNull.Present) {
+      require(value.value.isNotBlank(), field, "must not be blank")
+    }
+  }
+
+  fun requireNotBlankIfPresent(
+    value: PatchField<String>,
+    field: String,
+  ) {
+    if (value is PatchField.Present && value.value != null) {
+      require(value.value.isNotBlank(), field, "must not be blank")
+    }
   }
 
   fun finish() {
