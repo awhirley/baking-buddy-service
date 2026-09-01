@@ -1,5 +1,6 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.PatchField
 import com.bakingbuddy.api.errors.ConflictException
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
@@ -21,8 +22,10 @@ import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
+import com.bakingbuddy.models.bakes.UpdateBakeRatingPayload
 import com.bakingbuddy.repositories.helpers.BestIngredientDelta
 import com.bakingbuddy.repositories.helpers.BestInstructionDelta
+import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -31,6 +34,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.max
+import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -471,48 +475,95 @@ class BakeRepositoryImpl : BakeRepository {
         .selectAll()
         .where { BakesTable.id eq payload.bakeId }
         .singleOrNull() ?: throw NotFoundException("Bake", payload.bakeId.toString())
-
-      BakesTable.update({ BakesTable.id eq payload.bakeId }) {
-        payload.elevation?.let { elevation -> it[BakesTable.elevation] = elevation }
-        payload.notes?.let { notes -> it[BakesTable.notes] = notes }
+      
+      BakesTable.update({ BakesTable.id eq payload.bakeId }) { statement ->
+        when (val elevation = payload.elevation) {
+            is PatchField.Absent -> {}
+            is PatchField.Present -> statement[BakesTable.elevation] = elevation.value
+        }
+        when (val notes = payload.notes) {
+            is PatchField.Absent -> {}
+            is PatchField.Present -> statement[BakesTable.notes] = notes.value
+        }
       }
 
-      payload.ratings?.let { rating -> upsertBakeRatings(payload.bakeId, rating) }
+      upsertBakeRatings(payload.bakeId, payload.ratings)
     }
 
   private fun upsertBakeRatings(
-    bakeId: Uuid,
-    rating: BakeRating,
+      bakeId: Uuid,
+      rating: PatchField<UpdateBakeRatingPayload>,
   ) {
-    val existingId =
-      BakeRatingsTable
-        .selectAll()
-        .where { BakeRatingsTable.bake_id eq bakeId }
-        .singleOrNull()
-        ?.get(BakeRatingsTable.id)
+      val payload = when (rating) {
+          is PatchField.Absent -> return // ratings key wasn't sent — leave existing ratings untouched
+          is PatchField.Present -> rating.value ?: return // TODO: see note below on "ratings": null
+      }
 
-    if (existingId == null) {
-      BakeRatingsTable.insert {
-        it[BakeRatingsTable.id] = Uuid.random()
-        it[BakeRatingsTable.bake_id] = bakeId
-        it[BakeRatingsTable.created_at] = Instant.now()
-        it[BakeRatingsTable.overall] = rating.overall
-        it[BakeRatingsTable.taste] = rating.taste
-        it[BakeRatingsTable.texture] = rating.texture
-        it[BakeRatingsTable.appearance] = rating.appearance
-        it[BakeRatingsTable.rise_structure] = rating.riseStructure
-        it[BakeRatingsTable.difficulty] = rating.difficulty
+      val existingId =
+          BakeRatingsTable
+              .selectAll()
+              .where { BakeRatingsTable.bake_id eq bakeId }
+              .singleOrNull()
+              ?.get(BakeRatingsTable.id)
+
+      if (existingId == null) {
+          BakeRatingsTable.insert {
+              it[BakeRatingsTable.id] = Uuid.random()
+              it[BakeRatingsTable.bake_id] = bakeId
+              it[BakeRatingsTable.created_at] = Instant.now()
+              when (val overall = payload.overall) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.overall] = overall.value
+              }
+              when (val taste = payload.taste) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.taste] = taste.value
+              }
+              when (val texture = payload.texture) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.texture] = texture.value
+              }
+              when (val appearance = payload.appearance) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.appearance] = appearance.value
+              }
+              when (val riseStructure = payload.riseStructure) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.rise_structure] = riseStructure.value
+              }
+              when (val difficulty = payload.difficulty) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.difficulty] = difficulty.value
+              }
+          }
+      } else {
+          BakeRatingsTable.update({ BakeRatingsTable.bake_id eq bakeId }) {
+              when (val overall = payload.overall) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.overall] = overall.value
+              }
+              when (val taste = payload.taste) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.taste] = taste.value
+              }
+              when (val texture = payload.texture) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.texture] = texture.value
+              }
+              when (val appearance = payload.appearance) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.appearance] = appearance.value
+              }
+              when (val riseStructure = payload.riseStructure) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.rise_structure] = riseStructure.value
+              }
+              when (val difficulty = payload.difficulty) {
+                is PatchField.Absent -> {}
+                is PatchField.Present -> it[BakeRatingsTable.difficulty] = difficulty.value
+              }
+          }
       }
-    } else {
-      BakeRatingsTable.update({ BakeRatingsTable.bake_id eq bakeId }) {
-        rating.overall?.let { v -> it[BakeRatingsTable.overall] = v }
-        rating.taste?.let { v -> it[BakeRatingsTable.taste] = v }
-        rating.texture?.let { v -> it[BakeRatingsTable.texture] = v }
-        rating.appearance?.let { v -> it[BakeRatingsTable.appearance] = v }
-        rating.riseStructure?.let { v -> it[BakeRatingsTable.rise_structure] = v }
-        rating.difficulty?.let { v -> it[BakeRatingsTable.difficulty] = v }
-      }
-    }
   }
 
   override suspend fun deleteBake(id: Uuid): Unit =

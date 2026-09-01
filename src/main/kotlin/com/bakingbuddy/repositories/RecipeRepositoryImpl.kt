@@ -1,5 +1,7 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.PatchField
+import com.bakingbuddy.api.PatchFieldNonNull
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredientsTable
 import com.bakingbuddy.database.BakeInstructionsTable
@@ -176,14 +178,32 @@ class RecipeRepositoryImpl : RecipeRepository {
 
       // Only touches Recipes table columns — ingredients/instructions are untouched here
       RecipesTable.update({ RecipesTable.id eq id }) {
-        request.name?.let { name -> it[RecipesTable.name] = name }
-        request.description?.let { description -> it[RecipesTable.description] = description }
-        request.recipeSource?.let { source -> it[RecipesTable.recipe_source] = source }
-        request.recipeSourceType?.let { sourceType -> it[RecipesTable.recipe_source_type] = sourceType }
+        when (val name = request.name) {
+          is PatchFieldNonNull.Absent -> {}
+          is PatchFieldNonNull.Present -> it[RecipesTable.name] = name.value
+        }
+        when (val description = request.description) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[RecipesTable.description] = description.value
+        }
+        when (val recipeSource = request.recipeSource) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[RecipesTable.recipe_source] = recipeSource.value
+        }
+        when (val recipeSourceType = request.recipeSourceType) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[RecipesTable.recipe_source_type] = recipeSourceType.value
+        }
         request.tags?.let { tags -> it[RecipesTable.tags] = tags }
         request.tools?.let { tools -> it[RecipesTable.tools] = tools }
-        request.difficultyRating?.let { difficultyRating -> it[RecipesTable.difficulty_rating] = difficultyRating }
-        request.favorite.let { favorite -> it[RecipesTable.favorite] = favorite }
+        when (val difficultyRating = request.difficultyRating) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[RecipesTable.difficulty_rating] = difficultyRating.value
+        }
+        when (val favorite = request.favorite) {
+          is PatchFieldNonNull.Absent -> {}
+          is PatchFieldNonNull.Present -> it[RecipesTable.favorite] = favorite.value
+        }
       }
 
       val updatedRow =
