@@ -12,6 +12,7 @@ data class BakeDetail(
   val recipeId: Uuid,
   val elevation: Int? = null,
   val notes: String? = null,
+  val ratings: BakeRating? = null,
   @Serializable(with = InstantSerializer::class) val createdAt: Instant,
   @Serializable(with = InstantSerializer::class) val startDatetime: Instant?,
   @Serializable(with = InstantSerializer::class) val endDatetime: Instant? = null,
