@@ -40,7 +40,7 @@ import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class BakeRepositoryImpl : BakeRepository {
   private fun getBestIngredientDeltas(recipeId: Uuid): List<BestIngredientDelta> {
     val ingredientDeltas =
@@ -211,6 +211,7 @@ class BakeRepositoryImpl : BakeRepository {
       if (bakeRows.isEmpty()) return@transaction emptyList()
 
       val bakeIds = bakeRows.map { it[BakesTable.id] }
+      val ratingsByBakeId = getBakeRatings(bakeIds)
 
       val ingredientVersionsByBake =
         BakeIngredientsTable
@@ -280,6 +281,7 @@ class BakeRepositoryImpl : BakeRepository {
             createdAt = row[BakesTable.created_at],
             startDatetime = row[BakesTable.start_datetime],
             endDatetime = row[BakesTable.end_datetime],
+            ratings = ratingsByBakeId[row[BakesTable.id]],
           )
         Bake(
           id = bakeId,
@@ -290,6 +292,25 @@ class BakeRepositoryImpl : BakeRepository {
         )
       }
     }
+  }
+
+  fun getBakeRatings(bakeIds: List<Uuid>): Map<Uuid, BakeRating> {
+    val ratingsByBakeId =
+      BakeRatingsTable
+        .selectAll()
+        .where { BakeRatingsTable.bake_id inList bakeIds }
+        .associate { ratingRow ->
+          ratingRow[BakeRatingsTable.bake_id] to
+            BakeRating(
+              overall = ratingRow[BakeRatingsTable.overall],
+              taste = ratingRow[BakeRatingsTable.taste],
+              texture = ratingRow[BakeRatingsTable.texture],
+              appearance = ratingRow[BakeRatingsTable.appearance],
+              riseStructure = ratingRow[BakeRatingsTable.rise_structure],
+              difficulty = ratingRow[BakeRatingsTable.difficulty],
+            )
+        }
+    return ratingsByBakeId
   }
 
   // Load all details of all bakes
@@ -304,6 +325,9 @@ class BakeRepositoryImpl : BakeRepository {
             BakesTable.start_datetime to SortOrder.DESC,
           ).toList()
 
+      val bakeIds = bakeRows.map { it[BakesTable.id] }
+      val ratingsByBakeId = getBakeRatings(bakeIds)
+
       bakeRows.map { row ->
         BakeDetail(
           id = row[BakesTable.id],
@@ -314,6 +338,7 @@ class BakeRepositoryImpl : BakeRepository {
           createdAt = row[BakesTable.created_at],
           startDatetime = row[BakesTable.start_datetime],
           endDatetime = row[BakesTable.end_datetime],
+          ratings = ratingsByBakeId[row[BakesTable.id]],
         )
       }
     }
@@ -336,6 +361,7 @@ class BakeRepositoryImpl : BakeRepository {
       if (bakeRows.isEmpty()) return@transaction emptyList()
 
       val bakeIds = bakeRows.map { it[BakesTable.id] }
+      val ratingsByBakeId = getBakeRatings(bakeIds)
 
       bakeRows.map { row ->
         val bakeId = row[BakesTable.id]
@@ -348,6 +374,7 @@ class BakeRepositoryImpl : BakeRepository {
           createdAt = row[BakesTable.created_at],
           startDatetime = row[BakesTable.start_datetime],
           endDatetime = row[BakesTable.end_datetime],
+          ratings = ratingsByBakeId[bakeId],
         )
       }
     }
@@ -414,6 +441,8 @@ class BakeRepositoryImpl : BakeRepository {
             )
           }
 
+      val ratings = getBakeRatings(listOf(bakeId))[bakeId]
+
       val bakeDetail =
         BakeDetail(
           id = bakeId,
@@ -424,6 +453,7 @@ class BakeRepositoryImpl : BakeRepository {
           createdAt = row[BakesTable.created_at],
           startDatetime = row[BakesTable.start_datetime],
           endDatetime = row[BakesTable.end_datetime],
+          ratings = ratings,
         )
 
       Bake(
