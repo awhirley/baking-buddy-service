@@ -69,7 +69,7 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
             id = row[IngredientsTable.id],
             recipeId = row[IngredientsTable.recipe_id],
             bestVersion = row[IngredientsTable.best_version],
-            notes = row[IngredientsTable.notes],
+            notes = row[IngredientDeltaTable.notes],
             createdAt = row[IngredientsTable.created_at],
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],

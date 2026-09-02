@@ -1,8 +1,8 @@
 package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
-import com.bakingbuddy.models.ingredients.EditIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
+import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
 import com.bakingbuddy.models.instructions.Instruction
 import com.bakingbuddy.models.recipes.CreateRecipePayload
 import com.bakingbuddy.models.recipes.Recipe
@@ -137,8 +137,8 @@ class IngredientRoutesTest {
       // Will 500 rather than 200 until fixed.
       val service = mockk<RecipeService>()
       val id = Uuid.random()
-      val payload = EditIngredientPayload(name = "Flour", amount = "500g")
-      coEvery { service.editIngredient(id, payload) } returns sampleIngredient(id)
+      val payload = UpdateIngredientPayload(name = "Flour", amount = "500g", notes = null)
+      coEvery { service.updateIngredient(id, payload) } returns sampleIngredient(id)
       val client = setupTestApp(service)
 
       val response =
@@ -148,7 +148,7 @@ class IngredientRoutesTest {
         }
 
       response.status shouldBe HttpStatusCode.OK
-      coVerify(exactly = 1) { service.editIngredient(id, payload) }
+      coVerify(exactly = 1) { service.updateIngredient(id, payload) }
     }
 
   @Test
@@ -160,12 +160,12 @@ class IngredientRoutesTest {
       val response =
         client.patch("/api/ingredients/${Uuid.random()}") {
           contentType(ContentType.Application.Json)
-          setBody(EditIngredientPayload(name = "Flour", amount = "  "))
+          setBody(UpdateIngredientPayload(name = "Flour", amount = "  ", notes = null))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
       response.bodyAsText() shouldContain "\"field\":\"amount\""
-      coVerify(exactly = 0) { service.editIngredient(any(), any()) }
+      coVerify(exactly = 0) { service.updateIngredient(any(), any()) }
     }
 
   @Test
@@ -177,7 +177,7 @@ class IngredientRoutesTest {
       val response =
         client.patch("/api/ingredients/${Uuid.random()}") {
           contentType(ContentType.Application.Json)
-          setBody(EditIngredientPayload(name = "  ", amount = "500g"))
+          setBody(UpdateIngredientPayload(name = "  ", amount = "500g", notes = null))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
@@ -193,47 +193,9 @@ class IngredientRoutesTest {
       val response =
         client.patch("/api/ingredients/not-a-uuid") {
           contentType(ContentType.Application.Json)
-          setBody(EditIngredientPayload(name = "Flour", amount = "500g"))
+          setBody(UpdateIngredientPayload(name = "Flour", amount = "500g", notes = null))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
-    }
-
-  // ---------------------------------------------------------------
-  // PATCH /api/ingredients/notes/{id}
-  // ---------------------------------------------------------------
-
-  @Test
-  fun `PATCH ingredient notes with a valid body calls the service and returns 204`() =
-    testApplication {
-      val service = mockk<RecipeService>()
-      val id = Uuid.random()
-      coEvery { service.updateIngredientNotes(id, "Reduce to 480g next time") } returns Unit
-      val client = setupTestApp(service)
-
-      val response =
-        client.patch("/api/ingredients/notes/$id") {
-          contentType(ContentType.Application.Json)
-          setBody("Reduce to 480g next time")
-        }
-
-      response.status shouldBe HttpStatusCode.NoContent
-      coVerify(exactly = 1) { service.updateIngredientNotes(id, "Reduce to 480g next time") }
-    }
-
-  @Test
-  fun `PATCH ingredient notes with a malformed uuid returns 400 and never calls the service`() =
-    testApplication {
-      val service = mockk<RecipeService>()
-      val client = setupTestApp(service)
-
-      val response =
-        client.patch("/api/ingredients/notes/not-a-uuid") {
-          contentType(ContentType.Application.Json)
-          setBody("note")
-        }
-
-      response.status shouldBe HttpStatusCode.BadRequest
-      coVerify(exactly = 0) { service.updateIngredientNotes(any(), any()) }
     }
 }

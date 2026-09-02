@@ -11,10 +11,10 @@ import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.database.InstructionDeltaTable
 import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.database.RecipesTable
-import com.bakingbuddy.models.ingredients.EditIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
-import com.bakingbuddy.models.instructions.EditInstructionPayload
+import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
 import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import com.bakingbuddy.models.recipes.CreateRecipePayload
 import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.models.recipes.Recipe
@@ -237,9 +237,9 @@ class RecipeRepositoryImpl : RecipeRepository {
       )
     }
 
-  override suspend fun editIngredient(
+  override suspend fun updateIngredient(
     ingredientId: Uuid,
-    request: EditIngredientPayload,
+    request: UpdateIngredientPayload,
   ): Ingredient =
     transaction {
       val ingredientRow =
@@ -263,6 +263,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         it[IngredientDeltaTable.version] = newVersion
         it[IngredientDeltaTable.amount] = request.amount
         it[IngredientDeltaTable.name] = request.name
+        it[IngredientDeltaTable.notes] = request.notes
         it[IngredientDeltaTable.created_at] = createdAt
       }
 
@@ -274,7 +275,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         id = ingredientId,
         recipeId = ingredientRow[IngredientsTable.recipe_id],
         bestVersion = newVersion,
-        notes = ingredientRow[IngredientsTable.notes],
+        notes = request.notes,
         createdAt = ingredientRow[IngredientsTable.created_at],
         amount = request.amount,
         name = request.name,
@@ -282,9 +283,9 @@ class RecipeRepositoryImpl : RecipeRepository {
       )
     }
 
-  override suspend fun editInstruction(
+  override suspend fun updateInstruction(
     instructionId: Uuid,
-    request: EditInstructionPayload,
+    request: UpdateInstructionPayload,
   ): Instruction =
     transaction {
       val instructionRow =
@@ -307,6 +308,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         it[InstructionDeltaTable.instruction_id] = instructionId
         it[InstructionDeltaTable.version] = newVersion
         it[InstructionDeltaTable.description] = request.description
+        it[InstructionDeltaTable.notes] = request.notes
         it[InstructionDeltaTable.created_at] = createdAt
       }
 
@@ -318,7 +320,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         id = instructionId,
         recipeId = instructionRow[InstructionsTable.recipe_id],
         bestVersion = newVersion,
-        notes = instructionRow[InstructionsTable.notes],
+        notes = request.notes,
         createdAt = instructionRow[InstructionsTable.created_at],
         description = request.description,
         order = instructionRow[InstructionsTable.order],
@@ -337,36 +339,6 @@ class RecipeRepositoryImpl : RecipeRepository {
     val updatedRows =
       RecipesTable.update({ RecipesTable.id eq recipeId }) {
         it[RecipesTable.notes] = notes
-      }
-  }
-
-  override suspend fun updateIngredientNotes(
-    ingredientId: Uuid,
-    notes: String?,
-  ) = transaction {
-    IngredientsTable
-      .selectAll()
-      .where { IngredientsTable.id eq ingredientId }
-      .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
-
-    val updatedRows =
-      IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
-        it[IngredientsTable.notes] = notes
-      }
-  }
-
-  override suspend fun updateInstructionNotes(
-    instructionId: Uuid,
-    notes: String?,
-  ) = transaction {
-    InstructionsTable
-      .selectAll()
-      .where { InstructionsTable.id eq instructionId }
-      .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
-
-    val updatedRows =
-      InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
-        it[InstructionsTable.notes] = notes
       }
   }
 

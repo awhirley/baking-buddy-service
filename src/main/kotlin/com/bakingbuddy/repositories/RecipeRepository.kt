@@ -1,9 +1,9 @@
 package com.bakingbuddy.repositories
 
-import com.bakingbuddy.models.ingredients.EditIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
-import com.bakingbuddy.models.instructions.EditInstructionPayload
+import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
 import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import com.bakingbuddy.models.recipes.CreateRecipePayload
 import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.models.recipes.Recipe
@@ -22,28 +22,18 @@ interface RecipeRepository {
     request: EditRecipePayload,
   ): Recipe
 
-  suspend fun editIngredient(
+  suspend fun updateIngredient(
     ingredientId: Uuid,
-    request: EditIngredientPayload,
+    request: UpdateIngredientPayload,
   ): Ingredient
 
-  suspend fun editInstruction(
+  suspend fun updateInstruction(
     instructionId: Uuid,
-    request: EditInstructionPayload,
+    request: UpdateInstructionPayload,
   ): Instruction
 
   suspend fun updateRecipeNotes(
     recipeId: Uuid,
-    notes: String?,
-  )
-
-  suspend fun updateIngredientNotes(
-    ingredientId: Uuid,
-    notes: String?,
-  )
-
-  suspend fun updateInstructionNotes(
-    instructionId: Uuid,
     notes: String?,
   )
 

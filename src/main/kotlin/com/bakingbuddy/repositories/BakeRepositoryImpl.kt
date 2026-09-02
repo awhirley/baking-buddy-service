@@ -62,7 +62,7 @@ class BakeRepositoryImpl : BakeRepository {
             version = row[IngredientDeltaTable.version],
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
-            notes = row[IngredientsTable.notes],
+            notes = row[IngredientDeltaTable.notes],
           )
         }
 
@@ -98,7 +98,7 @@ class BakeRepositoryImpl : BakeRepository {
             instructionId = row[InstructionDeltaTable.instruction_id],
             version = row[InstructionDeltaTable.version],
             description = row[InstructionDeltaTable.description],
-            notes = row[InstructionsTable.notes],
+            notes = row[InstructionDeltaTable.notes],
           )
         }
 
@@ -187,6 +187,9 @@ class BakeRepositoryImpl : BakeRepository {
               amount = delta.amount,
               name = delta.name,
               notes = delta.notes,
+              updatedAmount = null,
+              updatedName = null,
+              updatedNotes = null,
             )
           },
         instructionVersions =
@@ -198,6 +201,8 @@ class BakeRepositoryImpl : BakeRepository {
               version = delta.version,
               description = delta.description,
               notes = delta.notes,
+              updatedDescription = null,
+              updatedNotes = null,
             )
           },
       )

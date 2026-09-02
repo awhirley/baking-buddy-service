@@ -1,9 +1,9 @@
 package com.bakingbuddy.services
 
-import com.bakingbuddy.models.ingredients.EditIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
-import com.bakingbuddy.models.instructions.EditInstructionPayload
+import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
 import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import com.bakingbuddy.models.recipes.CreateRecipePayload
 import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.models.recipes.Recipe
@@ -25,30 +25,20 @@ class RecipeService {
     request: EditRecipePayload,
   ): Recipe = recipeRepository.editRecipe(recipeId, request)
 
-  suspend fun editIngredient(
+  suspend fun updateIngredient(
     ingredientId: Uuid,
-    request: EditIngredientPayload,
-  ): Ingredient = recipeRepository.editIngredient(ingredientId, request)
+    request: UpdateIngredientPayload,
+  ): Ingredient = recipeRepository.updateIngredient(ingredientId, request)
 
-  suspend fun editInstruction(
+  suspend fun updateInstruction(
     instructionId: Uuid,
-    request: EditInstructionPayload,
-  ): Instruction = recipeRepository.editInstruction(instructionId, request)
+    request: UpdateInstructionPayload,
+  ): Instruction = recipeRepository.updateInstruction(instructionId, request)
 
   suspend fun updateRecipeNotes(
     recipeId: Uuid,
     notes: String?,
   ) = recipeRepository.updateRecipeNotes(recipeId, notes)
-
-  suspend fun updateIngredientNotes(
-    ingredientId: Uuid,
-    notes: String?,
-  ) = recipeRepository.updateIngredientNotes(ingredientId, notes)
-
-  suspend fun updateInstructionNotes(
-    instructionId: Uuid,
-    notes: String?,
-  ) = recipeRepository.updateInstructionNotes(instructionId, notes)
 
   suspend fun deleteRecipe(id: Uuid) = recipeRepository.deleteRecipe(id)
 }

@@ -3,6 +3,7 @@ package com.bakingbuddy.models.instructions
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class EditInstructionPayload(
+data class UpdateInstructionPayload(
   val description: String,
+  val notes: String?,
 )
