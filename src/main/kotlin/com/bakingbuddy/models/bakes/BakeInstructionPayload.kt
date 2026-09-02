@@ -9,4 +9,5 @@ data class BakeInstructionPayload(
   val instructionDeltaId: Uuid?,
   val version: Int?,
   val description: String,
+  val notes: String?,
 )

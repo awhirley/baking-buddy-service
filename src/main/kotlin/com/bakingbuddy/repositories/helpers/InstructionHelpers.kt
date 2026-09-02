@@ -91,4 +91,5 @@ data class BestInstructionDelta(
   val instructionId: Uuid,
   val version: Int,
   val description: String,
+  val notes: String?,
 )

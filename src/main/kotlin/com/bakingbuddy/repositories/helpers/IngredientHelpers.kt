@@ -98,4 +98,5 @@ data class BestIngredientDelta(
   val version: Int,
   val amount: String,
   val name: String,
+  val notes: String?,
 )

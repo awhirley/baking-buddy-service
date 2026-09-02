@@ -62,6 +62,7 @@ class BakeRepositoryImpl : BakeRepository {
             version = row[IngredientDeltaTable.version],
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
+            notes = row[IngredientsTable.notes],
           )
         }
 
@@ -97,6 +98,7 @@ class BakeRepositoryImpl : BakeRepository {
             instructionId = row[InstructionDeltaTable.instruction_id],
             version = row[InstructionDeltaTable.version],
             description = row[InstructionDeltaTable.description],
+            notes = row[InstructionsTable.notes],
           )
         }
 
@@ -181,6 +183,7 @@ class BakeRepositoryImpl : BakeRepository {
               version = delta.version,
               amount = delta.amount,
               name = delta.name,
+              notes = delta.notes,
             )
           },
         instructionVersions =
@@ -190,6 +193,7 @@ class BakeRepositoryImpl : BakeRepository {
               instructionDeltaId = delta.deltaId,
               version = delta.version,
               description = delta.description,
+              notes = delta.notes,
             )
           },
       )
@@ -241,6 +245,7 @@ class BakeRepositoryImpl : BakeRepository {
                 version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
                 amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
                 name = bakeIngredientName ?: row[IngredientDeltaTable.name],
+                notes = row[BakeIngredientsTable.notes],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -268,6 +273,7 @@ class BakeRepositoryImpl : BakeRepository {
                   },
                 version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
                 description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
+                notes = row[BakeInstructionsTable.notes],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -416,6 +422,7 @@ class BakeRepositoryImpl : BakeRepository {
               version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
               amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
               name = bakeIngredientName ?: row[IngredientDeltaTable.name],
+              notes = row[BakeIngredientsTable.notes],
             )
           }
 
@@ -440,6 +447,7 @@ class BakeRepositoryImpl : BakeRepository {
                 },
               version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
               description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
+              notes = row[BakeInstructionsTable.notes],
             )
           }
 
