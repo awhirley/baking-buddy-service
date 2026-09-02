@@ -8,7 +8,7 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class UpdateBakeIngredientPayload(
-  val deltaId: Uuid,
+  val bakeIngredientId: Uuid,
   val amount: String,
   val name: String,
   @EncodeDefault(EncodeDefault.Mode.NEVER)

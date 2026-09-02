@@ -8,7 +8,7 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class UpdateBakeInstructionPayload(
-  val deltaId: Uuid,
+  val bakeInstructionId: Uuid,
   val description: String?,
   @EncodeDefault(EncodeDefault.Mode.NEVER)
   @Serializable(with = PatchFieldSerializer::class)

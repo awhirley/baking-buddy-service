@@ -141,9 +141,10 @@ class BakeRepositoryImpl : BakeRepository {
         it[BakesTable.start_datetime] = createdAt
       }
 
+      val bakeIngredientId = Uuid.random()
       ingredientDeltas.forEach { delta ->
         BakeIngredientsTable.insert {
-          it[BakeIngredientsTable.id] = Uuid.random()
+          it[BakeIngredientsTable.id] = bakeIngredientId
           it[BakeIngredientsTable.bake_id] = bakeId
           it[BakeIngredientsTable.ingredient_delta_id] = delta.deltaId
           it[BakeIngredientsTable.amount] = null
@@ -152,9 +153,10 @@ class BakeRepositoryImpl : BakeRepository {
         }
       }
 
+      val bakeInstructionId = Uuid.random()
       instructionDeltas.forEach { delta ->
         BakeInstructionsTable.insert {
-          it[BakeInstructionsTable.id] = Uuid.random()
+          it[BakeInstructionsTable.id] = bakeInstructionId
           it[BakeInstructionsTable.bake_id] = bakeId
           it[BakeInstructionsTable.instruction_delta_id] = delta.deltaId
           it[BakeInstructionsTable.description] = null
@@ -178,6 +180,7 @@ class BakeRepositoryImpl : BakeRepository {
         ingredientVersions =
           ingredientDeltas.map { delta ->
             BakeIngredientPayload(
+              bakeIngredientId = bakeIngredientId,
               ingredientId = delta.ingredientId,
               ingredientDeltaId = delta.deltaId,
               version = delta.version,
@@ -189,6 +192,7 @@ class BakeRepositoryImpl : BakeRepository {
         instructionVersions =
           instructionDeltas.map { delta ->
             BakeInstructionPayload(
+              bakeInstructionId = bakeInstructionId,
               instructionId = delta.instructionId,
               instructionDeltaId = delta.deltaId,
               version = delta.version,
@@ -233,6 +237,7 @@ class BakeRepositoryImpl : BakeRepository {
             val bakeIngredientName = row[BakeIngredientsTable.name]
             row[BakeIngredientsTable.bake_id] to
               BakeIngredientPayload(
+                bakeIngredientId = row[BakeIngredientsTable.id],
                 ingredientId = row[IngredientDeltaTable.ingredient_id],
                 ingredientDeltaId =
                   if (bakeIngredientAmount !=
@@ -262,6 +267,7 @@ class BakeRepositoryImpl : BakeRepository {
             val bakeInstructionDescription = row[BakeInstructionsTable.description]
             row[BakeInstructionsTable.bake_id] to
               BakeInstructionPayload(
+                bakeInstructionId = row[BakeInstructionsTable.id],
                 instructionId = row[InstructionDeltaTable.instruction_id],
                 instructionDeltaId =
                   if (bakeInstructionDescription !=
@@ -412,6 +418,7 @@ class BakeRepositoryImpl : BakeRepository {
             val bakeIngredientAmount = row[BakeIngredientsTable.amount]
             val bakeIngredientName = row[BakeIngredientsTable.name]
             BakeIngredientPayload(
+              bakeIngredientId = row[BakeIngredientsTable.id],
               ingredientId = row[IngredientDeltaTable.ingredient_id],
               ingredientDeltaId =
                 if (bakeIngredientAmount != null) {
@@ -438,6 +445,7 @@ class BakeRepositoryImpl : BakeRepository {
           .map { row ->
             val bakeInstructionDescription = row[BakeInstructionsTable.description]
             BakeInstructionPayload(
+              bakeInstructionId = row[BakeInstructionsTable.id],
               instructionId = row[InstructionDeltaTable.instruction_id],
               instructionDeltaId =
                 if (bakeInstructionDescription != null) {
@@ -594,20 +602,17 @@ class BakeRepositoryImpl : BakeRepository {
     transaction {
       BakeInstructionsTable
         .selectAll()
-        .where {
-          (BakeInstructionsTable.bake_id eq bakeId) and
-            (BakeInstructionsTable.instruction_delta_id eq payload.deltaId)
-        }.singleOrNull()
-        ?: throw NotFoundException(
-          "Bake instruction",
-          "bakeId=$bakeId, instructionDeltaId=${payload.deltaId}",
-        )
+        .where { (BakeInstructionsTable.id eq payload.bakeInstructionId) and (BakeInstructionsTable.bake_id eq bakeId) }
+        .singleOrNull()
+        ?: throw NotFoundException("Bake instruction", "bakeId=$bakeId, bakeInstructionId=${payload.bakeInstructionId}")
 
-      BakeInstructionsTable.update({
-        (BakeInstructionsTable.bake_id eq bakeId) and
-          (BakeInstructionsTable.instruction_delta_id eq payload.deltaId)
-      }) {
-        it[BakeInstructionsTable.description] = payload.description
+      BakeInstructionsTable.update({ BakeInstructionsTable.id eq payload.bakeInstructionId }) { statement ->
+        statement[BakeInstructionsTable.description] = payload.description
+
+        when (val notes = payload.notes) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> statement[BakeInstructionsTable.notes] = notes.value
+        }
       }
     }
 
@@ -618,21 +623,18 @@ class BakeRepositoryImpl : BakeRepository {
     transaction {
       BakeIngredientsTable
         .selectAll()
-        .where {
-          (BakeIngredientsTable.bake_id eq bakeId) and
-            (BakeIngredientsTable.ingredient_delta_id eq payload.deltaId)
-        }.singleOrNull()
-        ?: throw NotFoundException(
-          "Bake ingredient",
-          "bakeId=$bakeId, ingredientDeltaId=${payload.deltaId}",
-        )
+        .where { (BakeIngredientsTable.id eq payload.bakeIngredientId) and (BakeIngredientsTable.bake_id eq bakeId) }
+        .singleOrNull()
+        ?: throw NotFoundException("Bake ingredient", "bakeId=$bakeId, bakeIngredientId=${payload.bakeIngredientId}")
 
-      BakeIngredientsTable.update({
-        (BakeIngredientsTable.bake_id eq bakeId) and
-          (BakeIngredientsTable.ingredient_delta_id eq payload.deltaId)
-      }) {
-        it[BakeIngredientsTable.amount] = payload.amount
-        it[BakeIngredientsTable.name] = payload.name
+      BakeIngredientsTable.update({ BakeIngredientsTable.id eq payload.bakeIngredientId }) { statement ->
+        statement[BakeIngredientsTable.amount] = payload.amount
+        statement[BakeIngredientsTable.name] = payload.name
+
+        when (val notes = payload.notes) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> statement[BakeIngredientsTable.notes] = notes.value
+        }
       }
     }
 
