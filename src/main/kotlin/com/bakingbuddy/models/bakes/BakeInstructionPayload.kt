@@ -8,7 +8,9 @@ data class BakeInstructionPayload(
   val bakeInstructionId: Uuid,
   val instructionId: Uuid,
   val instructionDeltaId: Uuid?,
-  val version: Int?,
+  val version: Int,
   val description: String,
   val notes: String?,
+  val updatedDescription: String?,
+  val updatedNotes: String?,
 )

@@ -7,9 +7,12 @@ import kotlin.uuid.Uuid
 data class BakeIngredientPayload(
   val bakeIngredientId: Uuid,
   val ingredientId: Uuid,
-  val ingredientDeltaId: Uuid?,
-  val version: Int?,
+  val ingredientDeltaId: Uuid,
+  val version: Int,
   val amount: String,
   val name: String,
   val notes: String?,
+  val updatedAmount: String?,
+  val updatedName: String?,
+  val updatedNotes: String?,
 )

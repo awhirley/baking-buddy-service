@@ -64,7 +64,7 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
           id = row[InstructionsTable.id],
           recipeId = row[InstructionsTable.recipe_id],
           bestVersion = row[InstructionsTable.best_version],
-          notes = row[InstructionsTable.notes],
+          notes = row[InstructionDeltaTable.notes],
           createdAt = row[InstructionsTable.created_at],
           description = row[InstructionDeltaTable.description],
           order = row[InstructionsTable.order],

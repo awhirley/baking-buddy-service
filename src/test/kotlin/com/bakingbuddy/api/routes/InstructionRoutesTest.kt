@@ -2,8 +2,8 @@ package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
-import com.bakingbuddy.models.instructions.EditInstructionPayload
 import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import com.bakingbuddy.models.recipes.CreateRecipePayload
 import com.bakingbuddy.models.recipes.Recipe
 import com.bakingbuddy.models.recipes.RecipeDetail
@@ -12,7 +12,6 @@ import com.bakingbuddy.services.RecipeService
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.HttpClient
-import io.ktor.client.request.get
 import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -136,8 +135,8 @@ class InstructionRoutesTest {
       // Same double-receive() bug -- see note on the recipe PATCH test.
       val service = mockk<RecipeService>()
       val id = Uuid.random()
-      val payload = EditInstructionPayload(description = "Mix, knead, and rest")
-      coEvery { service.editInstruction(id, payload) } returns sampleInstruction(id)
+      val payload = UpdateInstructionPayload(description = "Mix, knead, and rest", notes = null)
+      coEvery { service.updateInstruction(id, payload) } returns sampleInstruction(id)
       val client = setupTestApp(service)
 
       val response =
@@ -147,7 +146,7 @@ class InstructionRoutesTest {
         }
 
       response.status shouldBe HttpStatusCode.OK
-      coVerify(exactly = 1) { service.editInstruction(id, payload) }
+      coVerify(exactly = 1) { service.updateInstruction(id, payload) }
     }
 
   @Test
@@ -159,48 +158,11 @@ class InstructionRoutesTest {
       val response =
         client.patch("/api/instructions/${Uuid.random()}") {
           contentType(ContentType.Application.Json)
-          setBody(EditInstructionPayload(description = "   "))
+          setBody(UpdateInstructionPayload(description = "   ", notes = null))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
       response.bodyAsText() shouldContain "\"field\":\"description\""
-      coVerify(exactly = 0) { service.editInstruction(any(), any()) }
-    }
-
-  // ---------------------------------------------------------------
-  // PATCH /api/instructions/notes/{id}
-  // ---------------------------------------------------------------
-  @Test
-  fun `PATCH instruction notes with a valid body calls the service and returns 204`() =
-    testApplication {
-      val service = mockk<RecipeService>()
-      val id = Uuid.random()
-      coEvery { service.updateInstructionNotes(id, "Rest longer in winter") } returns Unit
-      val client = setupTestApp(service)
-
-      val response =
-        client.patch("/api/instructions/notes/$id") {
-          contentType(ContentType.Application.Json)
-          setBody("Rest longer in winter")
-        }
-
-      response.status shouldBe HttpStatusCode.NoContent
-      coVerify(exactly = 1) { service.updateInstructionNotes(id, "Rest longer in winter") }
-    }
-
-  @Test
-  fun `PATCH instruction notes with a malformed uuid returns 400 and never calls the service`() =
-    testApplication {
-      val service = mockk<RecipeService>()
-      val client = setupTestApp(service)
-
-      val response =
-        client.patch("/api/instructions/notes/not-a-uuid") {
-          contentType(ContentType.Application.Json)
-          setBody("note")
-        }
-
-      response.status shouldBe HttpStatusCode.BadRequest
-      coVerify(exactly = 0) { service.updateInstructionNotes(any(), any()) }
+      coVerify(exactly = 0) { service.updateInstruction(any(), any()) }
     }
 }
