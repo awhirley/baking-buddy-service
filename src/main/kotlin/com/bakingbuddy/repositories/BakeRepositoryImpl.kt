@@ -59,6 +59,7 @@ class BakeRepositoryImpl : BakeRepository {
           BestIngredientDelta(
             deltaId = row[IngredientDeltaTable.id],
             ingredientId = row[IngredientDeltaTable.ingredient_id],
+            bakeIngredientId = Uuid.random(),
             version = row[IngredientDeltaTable.version],
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
@@ -96,6 +97,7 @@ class BakeRepositoryImpl : BakeRepository {
           BestInstructionDelta(
             deltaId = row[InstructionDeltaTable.id],
             instructionId = row[InstructionDeltaTable.instruction_id],
+            bakeInstructionId = Uuid.random(),
             version = row[InstructionDeltaTable.version],
             description = row[InstructionDeltaTable.description],
             notes = row[InstructionDeltaTable.notes],
@@ -141,10 +143,9 @@ class BakeRepositoryImpl : BakeRepository {
         it[BakesTable.start_datetime] = createdAt
       }
 
-      val bakeIngredientId = Uuid.random()
       ingredientDeltas.forEach { delta ->
         BakeIngredientsTable.insert {
-          it[BakeIngredientsTable.id] = bakeIngredientId
+          it[BakeIngredientsTable.id] = delta.bakeIngredientId
           it[BakeIngredientsTable.bake_id] = bakeId
           it[BakeIngredientsTable.ingredient_delta_id] = delta.deltaId
           it[BakeIngredientsTable.amount] = null
@@ -153,10 +154,9 @@ class BakeRepositoryImpl : BakeRepository {
         }
       }
 
-      val bakeInstructionId = Uuid.random()
       instructionDeltas.forEach { delta ->
         BakeInstructionsTable.insert {
-          it[BakeInstructionsTable.id] = bakeInstructionId
+          it[BakeInstructionsTable.id] = delta.bakeInstructionId
           it[BakeInstructionsTable.bake_id] = bakeId
           it[BakeInstructionsTable.instruction_delta_id] = delta.deltaId
           it[BakeInstructionsTable.description] = null
@@ -180,7 +180,7 @@ class BakeRepositoryImpl : BakeRepository {
         ingredientVersions =
           ingredientDeltas.map { delta ->
             BakeIngredientPayload(
-              bakeIngredientId = bakeIngredientId,
+              bakeIngredientId = delta.bakeIngredientId,
               ingredientId = delta.ingredientId,
               ingredientDeltaId = delta.deltaId,
               version = delta.version,
@@ -190,12 +190,14 @@ class BakeRepositoryImpl : BakeRepository {
               updatedAmount = null,
               updatedName = null,
               updatedNotes = null,
+              notesUpdatedToNull = false,
+              completedBakeDeltaId = null,
             )
           },
         instructionVersions =
           instructionDeltas.map { delta ->
             BakeInstructionPayload(
-              bakeInstructionId = bakeInstructionId,
+              bakeInstructionId = delta.bakeInstructionId,
               instructionId = delta.instructionId,
               instructionDeltaId = delta.deltaId,
               version = delta.version,
@@ -203,6 +205,8 @@ class BakeRepositoryImpl : BakeRepository {
               notes = delta.notes,
               updatedDescription = null,
               updatedNotes = null,
+              notesUpdatedToNull = false,
+              completedBakeDeltaId = null,
             )
           },
       )
@@ -250,6 +254,8 @@ class BakeRepositoryImpl : BakeRepository {
                 updatedAmount = row[BakeIngredientsTable.amount],
                 updatedName = row[BakeIngredientsTable.name],
                 updatedNotes = row[BakeIngredientsTable.notes],
+                notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
+                completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -273,6 +279,9 @@ class BakeRepositoryImpl : BakeRepository {
                 notes = row[InstructionDeltaTable.notes],
                 updatedDescription = row[BakeInstructionsTable.description],
                 updatedNotes = row[BakeInstructionsTable.notes],
+                notesUpdatedToNull =
+                  row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
+                completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -421,6 +430,8 @@ class BakeRepositoryImpl : BakeRepository {
               updatedAmount = row[BakeIngredientsTable.amount],
               updatedName = row[BakeIngredientsTable.name],
               updatedNotes = row[BakeIngredientsTable.notes],
+              notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
+              completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
             )
           }
 
@@ -443,6 +454,8 @@ class BakeRepositoryImpl : BakeRepository {
               notes = row[InstructionDeltaTable.notes],
               updatedDescription = row[BakeInstructionsTable.description],
               updatedNotes = row[BakeInstructionsTable.notes],
+              notesUpdatedToNull = row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
+              completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
             )
           }
 
@@ -702,10 +715,11 @@ class BakeRepositoryImpl : BakeRepository {
       it[IngredientDeltaTable.name] = name
       it[IngredientDeltaTable.notes] = notes
       it[IngredientDeltaTable.created_at] = now
+      it[IngredientDeltaTable.source_bake_id] = row[BakeIngredientsTable.bake_id]
     }
 
     BakeIngredientsTable.update({ BakeIngredientsTable.id eq row[BakeIngredientsTable.id] }) {
-      it[BakeIngredientsTable.ingredient_delta_id] = newDeltaId
+      it[BakeIngredientsTable.completed_bake_delta_id] = newDeltaId
     }
 
     if (setAsBest) {
@@ -741,10 +755,11 @@ class BakeRepositoryImpl : BakeRepository {
       it[InstructionDeltaTable.description] = description
       it[InstructionDeltaTable.notes] = notes
       it[InstructionDeltaTable.created_at] = now
+      it[InstructionDeltaTable.source_bake_id] = row[BakeInstructionsTable.bake_id]
     }
 
     BakeInstructionsTable.update({ BakeInstructionsTable.id eq row[BakeInstructionsTable.id] }) {
-      it[BakeInstructionsTable.instruction_delta_id] = newDeltaId
+      it[BakeInstructionsTable.completed_bake_delta_id] = newDeltaId
     }
 
     if (setAsBest) {
