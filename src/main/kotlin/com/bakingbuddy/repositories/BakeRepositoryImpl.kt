@@ -233,24 +233,18 @@ class BakeRepositoryImpl : BakeRepository {
           ).selectAll()
           .where { BakeIngredientsTable.bake_id inList bakeIds }
           .map { row ->
-            val bakeIngredientAmount = row[BakeIngredientsTable.amount]
-            val bakeIngredientName = row[BakeIngredientsTable.name]
             row[BakeIngredientsTable.bake_id] to
               BakeIngredientPayload(
                 bakeIngredientId = row[BakeIngredientsTable.id],
                 ingredientId = row[IngredientDeltaTable.ingredient_id],
-                ingredientDeltaId =
-                  if (bakeIngredientAmount !=
-                    null
-                  ) {
-                    null
-                  } else {
-                    row[BakeIngredientsTable.ingredient_delta_id]
-                  },
-                version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
-                amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
-                name = bakeIngredientName ?: row[IngredientDeltaTable.name],
-                notes = row[BakeIngredientsTable.notes],
+                ingredientDeltaId = row[BakeIngredientsTable.ingredient_delta_id],
+                version = row[IngredientDeltaTable.version],
+                amount = row[IngredientDeltaTable.amount],
+                name = row[IngredientDeltaTable.name],
+                notes = row[IngredientDeltaTable.notes],
+                updatedAmount = row[BakeIngredientsTable.amount],
+                updatedName = row[BakeIngredientsTable.name],
+                updatedNotes = row[BakeIngredientsTable.notes],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -264,22 +258,16 @@ class BakeRepositoryImpl : BakeRepository {
           ).selectAll()
           .where { BakeInstructionsTable.bake_id inList bakeIds }
           .map { row ->
-            val bakeInstructionDescription = row[BakeInstructionsTable.description]
             row[BakeInstructionsTable.bake_id] to
               BakeInstructionPayload(
                 bakeInstructionId = row[BakeInstructionsTable.id],
                 instructionId = row[InstructionDeltaTable.instruction_id],
-                instructionDeltaId =
-                  if (bakeInstructionDescription !=
-                    null
-                  ) {
-                    null
-                  } else {
-                    row[BakeInstructionsTable.instruction_delta_id]
-                  },
-                version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
-                description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
-                notes = row[BakeInstructionsTable.notes],
+                instructionDeltaId = row[BakeInstructionsTable.instruction_delta_id],
+                version = row[InstructionDeltaTable.version],
+                description = row[InstructionDeltaTable.description],
+                notes = row[InstructionDeltaTable.notes],
+                updatedDescription = row[BakeInstructionsTable.description],
+                updatedNotes = row[BakeInstructionsTable.notes],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -420,16 +408,14 @@ class BakeRepositoryImpl : BakeRepository {
             BakeIngredientPayload(
               bakeIngredientId = row[BakeIngredientsTable.id],
               ingredientId = row[IngredientDeltaTable.ingredient_id],
-              ingredientDeltaId =
-                if (bakeIngredientAmount != null) {
-                  null
-                } else {
-                  row[BakeIngredientsTable.ingredient_delta_id]
-                },
-              version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
-              amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
-              name = bakeIngredientName ?: row[IngredientDeltaTable.name],
-              notes = row[BakeIngredientsTable.notes],
+              ingredientDeltaId = row[BakeIngredientsTable.ingredient_delta_id],
+              version = row[IngredientDeltaTable.version],
+              amount = row[IngredientDeltaTable.amount],
+              name = row[IngredientDeltaTable.name],
+              notes = row[IngredientDeltaTable.notes],
+              updatedAmount = row[BakeIngredientsTable.amount],
+              updatedName = row[BakeIngredientsTable.name],
+              updatedNotes = row[BakeIngredientsTable.notes],
             )
           }
 
@@ -443,19 +429,15 @@ class BakeRepositoryImpl : BakeRepository {
           ).selectAll()
           .where { BakeInstructionsTable.bake_id eq bakeId }
           .map { row ->
-            val bakeInstructionDescription = row[BakeInstructionsTable.description]
             BakeInstructionPayload(
               bakeInstructionId = row[BakeInstructionsTable.id],
               instructionId = row[InstructionDeltaTable.instruction_id],
-              instructionDeltaId =
-                if (bakeInstructionDescription != null) {
-                  null
-                } else {
-                  row[BakeInstructionsTable.instruction_delta_id]
-                },
-              version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
-              description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
-              notes = row[BakeInstructionsTable.notes],
+              instructionDeltaId = row[BakeInstructionsTable.instruction_delta_id],
+              version = row[InstructionDeltaTable.version],
+              description = row[InstructionDeltaTable.description],
+              notes = row[InstructionDeltaTable.notes],
+              updatedDescription = row[BakeInstructionsTable.description],
+              updatedNotes = row[BakeInstructionsTable.notes],
             )
           }
 
