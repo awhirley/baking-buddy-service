@@ -13,4 +13,6 @@ data class BakeInstructionPayload(
   val notes: String?,
   val updatedDescription: String?,
   val updatedNotes: String?,
+  val notesUpdatedToNull: Boolean,
+  val completedBakeDeltaId: Uuid?,
 )

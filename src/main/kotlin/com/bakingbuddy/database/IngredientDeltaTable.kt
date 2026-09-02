@@ -10,6 +10,7 @@ object IngredientDeltaTable : Table("ingredient_delta") {
   val amount = text("amount")
   val name = text("name")
   val notes = text("notes").nullable()
+  val source_bake_id = uuid("source_bake_id").nullable()
   val created_at = timestamp("created_at")
 
   override val primaryKey = PrimaryKey(id)

@@ -89,6 +89,7 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
 data class BestInstructionDelta(
   val deltaId: Uuid,
   val instructionId: Uuid,
+  val bakeInstructionId: Uuid,
   val version: Int,
   val description: String,
   val notes: String?,
