@@ -10,4 +10,5 @@ data class BakeIngredientPayload(
   val version: Int?,
   val amount: String,
   val name: String,
+  val notes: String?,
 )

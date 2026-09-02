@@ -1,5 +1,6 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.api.PatchField
 import com.bakingbuddy.api.errors.ConflictException
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
@@ -21,6 +22,7 @@ import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
+import com.bakingbuddy.models.bakes.UpdateBakeRatingPayload
 import com.bakingbuddy.repositories.helpers.BestIngredientDelta
 import com.bakingbuddy.repositories.helpers.BestInstructionDelta
 import org.jetbrains.exposed.v1.core.JoinType
@@ -60,6 +62,7 @@ class BakeRepositoryImpl : BakeRepository {
             version = row[IngredientDeltaTable.version],
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
+            notes = row[IngredientsTable.notes],
           )
         }
 
@@ -95,6 +98,7 @@ class BakeRepositoryImpl : BakeRepository {
             instructionId = row[InstructionDeltaTable.instruction_id],
             version = row[InstructionDeltaTable.version],
             description = row[InstructionDeltaTable.description],
+            notes = row[InstructionsTable.notes],
           )
         }
 
@@ -179,6 +183,7 @@ class BakeRepositoryImpl : BakeRepository {
               version = delta.version,
               amount = delta.amount,
               name = delta.name,
+              notes = delta.notes,
             )
           },
         instructionVersions =
@@ -188,6 +193,7 @@ class BakeRepositoryImpl : BakeRepository {
               instructionDeltaId = delta.deltaId,
               version = delta.version,
               description = delta.description,
+              notes = delta.notes,
             )
           },
       )
@@ -239,6 +245,7 @@ class BakeRepositoryImpl : BakeRepository {
                 version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
                 amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
                 name = bakeIngredientName ?: row[IngredientDeltaTable.name],
+                notes = row[BakeIngredientsTable.notes],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -266,6 +273,7 @@ class BakeRepositoryImpl : BakeRepository {
                   },
                 version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
                 description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
+                notes = row[BakeInstructionsTable.notes],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -414,6 +422,7 @@ class BakeRepositoryImpl : BakeRepository {
               version = if (bakeIngredientAmount != null) null else row[IngredientDeltaTable.version],
               amount = bakeIngredientAmount ?: row[IngredientDeltaTable.amount],
               name = bakeIngredientName ?: row[IngredientDeltaTable.name],
+              notes = row[BakeIngredientsTable.notes],
             )
           }
 
@@ -438,6 +447,7 @@ class BakeRepositoryImpl : BakeRepository {
                 },
               version = if (bakeInstructionDescription != null) null else row[InstructionDeltaTable.version],
               description = bakeInstructionDescription ?: row[InstructionDeltaTable.description],
+              notes = row[BakeInstructionsTable.notes],
             )
           }
 
@@ -472,18 +482,31 @@ class BakeRepositoryImpl : BakeRepository {
         .where { BakesTable.id eq payload.bakeId }
         .singleOrNull() ?: throw NotFoundException("Bake", payload.bakeId.toString())
 
-      BakesTable.update({ BakesTable.id eq payload.bakeId }) {
-        payload.elevation?.let { elevation -> it[BakesTable.elevation] = elevation }
-        payload.notes?.let { notes -> it[BakesTable.notes] = notes }
+      BakesTable.update({ BakesTable.id eq payload.bakeId }) { statement ->
+        when (val elevation = payload.elevation) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> statement[BakesTable.elevation] = elevation.value
+        }
+        when (val notes = payload.notes) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> statement[BakesTable.notes] = notes.value
+        }
       }
 
-      payload.ratings?.let { rating -> upsertBakeRatings(payload.bakeId, rating) }
+      upsertBakeRatings(payload.bakeId, payload.ratings)
     }
 
+  @Suppress("CyclomaticComplexMethod")
   private fun upsertBakeRatings(
     bakeId: Uuid,
-    rating: BakeRating,
+    rating: PatchField<UpdateBakeRatingPayload>,
   ) {
+    val payload =
+      when (rating) {
+        is PatchField.Absent -> return
+        is PatchField.Present -> rating.value ?: return
+      }
+
     val existingId =
       BakeRatingsTable
         .selectAll()
@@ -496,21 +519,57 @@ class BakeRepositoryImpl : BakeRepository {
         it[BakeRatingsTable.id] = Uuid.random()
         it[BakeRatingsTable.bake_id] = bakeId
         it[BakeRatingsTable.created_at] = Instant.now()
-        it[BakeRatingsTable.overall] = rating.overall
-        it[BakeRatingsTable.taste] = rating.taste
-        it[BakeRatingsTable.texture] = rating.texture
-        it[BakeRatingsTable.appearance] = rating.appearance
-        it[BakeRatingsTable.rise_structure] = rating.riseStructure
-        it[BakeRatingsTable.difficulty] = rating.difficulty
+        when (val overall = payload.overall) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.overall] = overall.value
+        }
+        when (val taste = payload.taste) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.taste] = taste.value
+        }
+        when (val texture = payload.texture) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.texture] = texture.value
+        }
+        when (val appearance = payload.appearance) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.appearance] = appearance.value
+        }
+        when (val riseStructure = payload.riseStructure) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.rise_structure] = riseStructure.value
+        }
+        when (val difficulty = payload.difficulty) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.difficulty] = difficulty.value
+        }
       }
     } else {
       BakeRatingsTable.update({ BakeRatingsTable.bake_id eq bakeId }) {
-        rating.overall?.let { v -> it[BakeRatingsTable.overall] = v }
-        rating.taste?.let { v -> it[BakeRatingsTable.taste] = v }
-        rating.texture?.let { v -> it[BakeRatingsTable.texture] = v }
-        rating.appearance?.let { v -> it[BakeRatingsTable.appearance] = v }
-        rating.riseStructure?.let { v -> it[BakeRatingsTable.rise_structure] = v }
-        rating.difficulty?.let { v -> it[BakeRatingsTable.difficulty] = v }
+        when (val overall = payload.overall) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.overall] = overall.value
+        }
+        when (val taste = payload.taste) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.taste] = taste.value
+        }
+        when (val texture = payload.texture) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.texture] = texture.value
+        }
+        when (val appearance = payload.appearance) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.appearance] = appearance.value
+        }
+        when (val riseStructure = payload.riseStructure) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.rise_structure] = riseStructure.value
+        }
+        when (val difficulty = payload.difficulty) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[BakeRatingsTable.difficulty] = difficulty.value
+        }
       }
     }
   }

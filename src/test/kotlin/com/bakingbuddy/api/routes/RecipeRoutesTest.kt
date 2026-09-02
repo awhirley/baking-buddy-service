@@ -1,5 +1,6 @@
 package com.bakingbuddy.api.routes
 
+import com.bakingbuddy.api.PatchFieldNonNull
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
 import com.bakingbuddy.models.instructions.Instruction
@@ -400,7 +401,7 @@ class RecipeRoutesTest {
     testApplication {
       val service = mockk<RecipeService>()
       val id = Uuid.random()
-      val payload = EditRecipePayload(name = "New Name")
+      val payload = EditRecipePayload(name = PatchFieldNonNull.Present("New Name"))
       coEvery { service.editRecipe(id, payload) } returns sampleRecipe(id)
       val client = setupTestApp(service)
 
@@ -423,7 +424,7 @@ class RecipeRoutesTest {
       val response =
         client.patch("/api/recipes/not-a-uuid") {
           contentType(ContentType.Application.Json)
-          setBody(EditRecipePayload(name = "New Name"))
+          setBody(EditRecipePayload(name = PatchFieldNonNull.Present("New Name")))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
@@ -439,7 +440,7 @@ class RecipeRoutesTest {
       val response =
         client.patch("/api/recipes/${Uuid.random()}") {
           contentType(ContentType.Application.Json)
-          setBody(EditRecipePayload(name = "   "))
+          setBody(EditRecipePayload(name = PatchFieldNonNull.Present("   ")))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
