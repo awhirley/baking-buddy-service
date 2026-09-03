@@ -43,7 +43,6 @@ import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
-// @Suppress("TooManyFunctions", "LargeClass")
 class BakeRepositoryImpl : BakeRepository {
   override suspend fun createBake(recipeId: Uuid): Bake =
     transaction {
