@@ -6,4 +6,5 @@ import kotlinx.serialization.Serializable
 data class UpdateInstructionPayload(
   val description: String,
   val notes: String?,
+  val order: Int,
 )

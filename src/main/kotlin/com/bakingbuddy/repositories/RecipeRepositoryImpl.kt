@@ -265,6 +265,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         it[IngredientDeltaTable.name] = request.name
         it[IngredientDeltaTable.notes] = request.notes
         it[IngredientDeltaTable.created_at] = createdAt
+        it[IngredientDeltaTable.order] = request.order
       }
 
       IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
@@ -279,7 +280,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         createdAt = ingredientRow[IngredientsTable.created_at],
         amount = request.amount,
         name = request.name,
-        order = ingredientRow[IngredientsTable.order],
+        order = request.order,
       )
     }
 
@@ -310,6 +311,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         it[InstructionDeltaTable.description] = request.description
         it[InstructionDeltaTable.notes] = request.notes
         it[InstructionDeltaTable.created_at] = createdAt
+        it[InstructionDeltaTable.order] = request.order
       }
 
       InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
@@ -323,7 +325,7 @@ class RecipeRepositoryImpl : RecipeRepository {
         notes = request.notes,
         createdAt = instructionRow[InstructionsTable.created_at],
         description = request.description,
-        order = instructionRow[InstructionsTable.order],
+        order = request.order,
       )
     }
 

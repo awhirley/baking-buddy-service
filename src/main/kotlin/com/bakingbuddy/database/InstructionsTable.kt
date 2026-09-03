@@ -8,7 +8,6 @@ object InstructionsTable : Table("instructions") {
   val recipe_id = uuid("recipe_id")
   val best_version = integer("best_version")
   val created_at = timestamp("created_at")
-  val order = integer("order").nullable()
 
   override val primaryKey = PrimaryKey(id)
 }

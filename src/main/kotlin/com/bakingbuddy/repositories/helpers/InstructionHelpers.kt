@@ -15,9 +15,10 @@ fun createInstructions(
   recipeId: Uuid,
   request: List<String>,
 ): List<Instruction> =
-  request.map { description ->
+  request.mapIndexed { index, description ->
     val instructionId = Uuid.random()
     val createdAt = Instant.now()
+    val order = (index + 1) * 10
 
     val instructionStatement =
       InstructionsTable.insert {
@@ -32,6 +33,7 @@ fun createInstructions(
       it[InstructionDeltaTable.version] = 1
       it[InstructionDeltaTable.description] = description
       it[InstructionDeltaTable.created_at] = createdAt
+      it[InstructionDeltaTable.order] = order
     }
 
     Instruction(
@@ -41,7 +43,7 @@ fun createInstructions(
       notes = null,
       createdAt = instructionStatement[InstructionsTable.created_at],
       description = description,
-      order = null,
+      order = order,
     )
   }
 
@@ -67,7 +69,7 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
           notes = row[InstructionDeltaTable.notes],
           createdAt = row[InstructionsTable.created_at],
           description = row[InstructionDeltaTable.description],
-          order = row[InstructionsTable.order],
+          order = row[InstructionDeltaTable.order],
         )
       }
 
@@ -93,4 +95,5 @@ data class BestInstructionDelta(
   val version: Int,
   val description: String,
   val notes: String?,
+  val order: Int,
 )

@@ -64,6 +64,7 @@ class BakeRepositoryImpl : BakeRepository {
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
             notes = row[IngredientDeltaTable.notes],
+            order = row[IngredientDeltaTable.order],
           )
         }
 
