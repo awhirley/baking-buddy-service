@@ -155,6 +155,7 @@ class BakeRepositoryImpl : BakeRepository {
           it[BakeIngredientsTable.amount] = null
           it[BakeIngredientsTable.name] = null
           it[BakeIngredientsTable.notes] = null
+          it[BakeIngredientsTable.order] = delta.order
         }
       }
 
@@ -165,6 +166,7 @@ class BakeRepositoryImpl : BakeRepository {
           it[BakeInstructionsTable.instruction_delta_id] = delta.deltaId
           it[BakeInstructionsTable.description] = null
           it[BakeInstructionsTable.notes] = null
+          it[BakeInstructionsTable.order] = delta.order
         }
       }
 
