@@ -2,134 +2,54 @@ package com.bakingbuddy.repositories
 
 import com.bakingbuddy.api.PatchField
 import com.bakingbuddy.api.errors.ConflictException
-import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeIngredientsTable
 import com.bakingbuddy.database.BakeInstructionsTable
-import com.bakingbuddy.database.BakeRatingsTable
 import com.bakingbuddy.database.BakesTable
 import com.bakingbuddy.database.IngredientDeltaTable
-import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.database.InstructionDeltaTable
-import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.database.RecipesTable
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
+import com.bakingbuddy.models.bakes.BakeIngredient
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
+import com.bakingbuddy.models.bakes.BakeInstruction
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
-import com.bakingbuddy.models.bakes.BakeRating
 import com.bakingbuddy.models.bakes.CompleteBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
-import com.bakingbuddy.models.bakes.UpdateBakeRatingPayload
-import com.bakingbuddy.repositories.helpers.BestIngredientDelta
-import com.bakingbuddy.repositories.helpers.BestInstructionDelta
+import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
+import com.bakingbuddy.models.instructions.InstructionDeltaEntry
+import com.bakingbuddy.repositories.helpers.assertNoOpenBake
+import com.bakingbuddy.repositories.helpers.completeBakeIngredient
+import com.bakingbuddy.repositories.helpers.completeBakeInstruction
+import com.bakingbuddy.repositories.helpers.getBakeIngredientPayloadForRow
+import com.bakingbuddy.repositories.helpers.getBakeInstructionPayloadForRow
+import com.bakingbuddy.repositories.helpers.getBakeRatings
+import com.bakingbuddy.repositories.helpers.getBestIngredientDeltas
+import com.bakingbuddy.repositories.helpers.getBestInstructionDeltas
+import com.bakingbuddy.repositories.helpers.upsertBakeRatings
 import org.jetbrains.exposed.v1.core.JoinType
-import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.isNull
-import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
-@Suppress("TooManyFunctions", "LargeClass")
 class BakeRepositoryImpl : BakeRepository {
-  private fun getBestIngredientDeltas(recipeId: Uuid): List<BestIngredientDelta> {
-    val ingredientDeltas =
-      IngredientsTable
-        .join(
-          IngredientDeltaTable,
-          JoinType.INNER,
-          onColumn = IngredientsTable.id,
-          otherColumn = IngredientDeltaTable.ingredient_id,
-          additionalConstraint = { IngredientDeltaTable.version eq IngredientsTable.best_version },
-        ).selectAll()
-        .where { IngredientsTable.recipe_id eq recipeId }
-        .orderBy(IngredientDeltaTable.order to SortOrder.ASC)
-        .map { row ->
-          BestIngredientDelta(
-            deltaId = row[IngredientDeltaTable.id],
-            ingredientId = row[IngredientDeltaTable.ingredient_id],
-            bakeIngredientId = Uuid.random(),
-            version = row[IngredientDeltaTable.version],
-            amount = row[IngredientDeltaTable.amount],
-            name = row[IngredientDeltaTable.name],
-            notes = row[IngredientDeltaTable.notes],
-            order = row[IngredientDeltaTable.order],
-          )
-        }
-
-    val ingredientConceptCount =
-      IngredientsTable
-        .selectAll()
-        .where { IngredientsTable.recipe_id eq recipeId }
-        .count()
-
-    if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
-      throw DataIntegrityException(
-        "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId",
-      )
-    }
-
-    return ingredientDeltas
-  }
-
-  private fun getBestInstructionDeltas(recipeId: Uuid): List<BestInstructionDelta> {
-    val instructionDeltas =
-      InstructionsTable
-        .join(
-          InstructionDeltaTable,
-          JoinType.INNER,
-          onColumn = InstructionsTable.id,
-          otherColumn = InstructionDeltaTable.instruction_id,
-          additionalConstraint = { InstructionDeltaTable.version eq InstructionsTable.best_version },
-        ).selectAll()
-        .where { InstructionsTable.recipe_id eq recipeId }
-        .orderBy(InstructionDeltaTable.order to SortOrder.ASC)
-        .map { row ->
-          BestInstructionDelta(
-            deltaId = row[InstructionDeltaTable.id],
-            instructionId = row[InstructionDeltaTable.instruction_id],
-            bakeInstructionId = Uuid.random(),
-            version = row[InstructionDeltaTable.version],
-            description = row[InstructionDeltaTable.description],
-            notes = row[InstructionDeltaTable.notes],
-            order = row[InstructionDeltaTable.order],
-          )
-        }
-
-    val instructionConceptCount =
-      InstructionsTable
-        .selectAll()
-        .where { InstructionsTable.recipe_id eq recipeId }
-        .count()
-
-    if (instructionDeltas.size.toLong() != instructionConceptCount) {
-      throw DataIntegrityException(
-        "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId",
-      )
-    }
-
-    return instructionDeltas
-  }
-
   override suspend fun createBake(recipeId: Uuid): Bake =
     transaction {
-      val recipe =
-        RecipesTable
-          .selectAll()
-          .where { RecipesTable.id eq recipeId }
-          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       assertNoOpenBake(recipeId)
 
@@ -151,11 +71,11 @@ class BakeRepositoryImpl : BakeRepository {
         BakeIngredientsTable.insert {
           it[BakeIngredientsTable.id] = delta.bakeIngredientId
           it[BakeIngredientsTable.bake_id] = bakeId
-          it[BakeIngredientsTable.ingredient_delta_id] = delta.deltaId
-          it[BakeIngredientsTable.amount] = null
-          it[BakeIngredientsTable.name] = null
-          it[BakeIngredientsTable.notes] = null
-          it[BakeIngredientsTable.order] = delta.order
+          it[BakeIngredientsTable.ingredient_delta_id] = delta.bestDelta.id
+          it[BakeIngredientsTable.amount] = delta.bestDelta.amount
+          it[BakeIngredientsTable.name] = delta.bestDelta.name
+          it[BakeIngredientsTable.notes] = delta.bestDelta.notes
+          it[BakeIngredientsTable.order] = delta.bestDelta.order
         }
       }
 
@@ -163,10 +83,10 @@ class BakeRepositoryImpl : BakeRepository {
         BakeInstructionsTable.insert {
           it[BakeInstructionsTable.id] = delta.bakeInstructionId
           it[BakeInstructionsTable.bake_id] = bakeId
-          it[BakeInstructionsTable.instruction_delta_id] = delta.deltaId
-          it[BakeInstructionsTable.description] = null
-          it[BakeInstructionsTable.notes] = null
-          it[BakeInstructionsTable.order] = delta.order
+          it[BakeInstructionsTable.instruction_delta_id] = delta.bestDelta.id
+          it[BakeInstructionsTable.description] = delta.bestDelta.description
+          it[BakeInstructionsTable.notes] = delta.bestDelta.notes
+          it[BakeInstructionsTable.order] = delta.bestDelta.order
         }
       }
 
@@ -186,34 +106,48 @@ class BakeRepositoryImpl : BakeRepository {
           ingredientDeltas.map { delta ->
             BakeIngredientPayload(
               bakeIngredientId = delta.bakeIngredientId,
-              ingredientId = delta.ingredientId,
-              ingredientDeltaId = delta.deltaId,
-              version = delta.version,
-              amount = delta.amount,
-              name = delta.name,
-              notes = delta.notes,
-              updatedAmount = null,
-              updatedName = null,
-              updatedNotes = null,
-              notesUpdatedToNull = false,
+              initialDeltaValues =
+                IngredientDeltaEntry(
+                  id = delta.bestDelta.id,
+                  ingredientId = delta.bestDelta.ingredientId,
+                  version = delta.bestDelta.version,
+                  amount = delta.bestDelta.amount,
+                  name = delta.bestDelta.name,
+                  notes = delta.bestDelta.notes,
+                  order = delta.bestDelta.order,
+                  createdAt = delta.bestDelta.createdAt,
+                ),
+              updatedDeltaValues =
+                BakeIngredient(
+                  updatedAmount = delta.bestDelta.amount,
+                  updatedName = delta.bestDelta.name,
+                  updatedNotes = delta.bestDelta.notes,
+                  updatedOrder = delta.bestDelta.order,
+                ),
               completedBakeDeltaId = null,
-              order = delta.order,
             )
           },
         instructionVersions =
           instructionDeltas.map { delta ->
             BakeInstructionPayload(
               bakeInstructionId = delta.bakeInstructionId,
-              instructionId = delta.instructionId,
-              instructionDeltaId = delta.deltaId,
-              version = delta.version,
-              description = delta.description,
-              notes = delta.notes,
-              updatedDescription = null,
-              updatedNotes = null,
-              notesUpdatedToNull = false,
+              initialDeltaValues =
+                InstructionDeltaEntry(
+                  id = delta.bestDelta.id,
+                  instructionId = delta.bestDelta.instructionId,
+                  version = delta.bestDelta.version,
+                  description = delta.bestDelta.description,
+                  notes = delta.bestDelta.notes,
+                  order = delta.bestDelta.order,
+                  createdAt = delta.bestDelta.createdAt,
+                ),
+              updatedDeltaValues =
+                BakeInstruction(
+                  updatedDescription = delta.bestDelta.description,
+                  updatedNotes = delta.bestDelta.notes,
+                  updatedOrder = delta.bestDelta.order,
+                ),
               completedBakeDeltaId = null,
-              order = delta.order,
             )
           },
       )
@@ -234,7 +168,6 @@ class BakeRepositoryImpl : BakeRepository {
           .toList()
 
       if (bakeRows.isEmpty()) return@transaction emptyList()
-
       val bakeIds = bakeRows.map { it[BakesTable.id] }
       val ratingsByBakeId = getBakeRatings(bakeIds)
 
@@ -250,21 +183,7 @@ class BakeRepositoryImpl : BakeRepository {
           .orderBy(BakeIngredientsTable.order to SortOrder.ASC)
           .map { row ->
             row[BakeIngredientsTable.bake_id] to
-              BakeIngredientPayload(
-                bakeIngredientId = row[BakeIngredientsTable.id],
-                ingredientId = row[IngredientDeltaTable.ingredient_id],
-                ingredientDeltaId = row[BakeIngredientsTable.ingredient_delta_id],
-                version = row[IngredientDeltaTable.version],
-                amount = row[IngredientDeltaTable.amount],
-                name = row[IngredientDeltaTable.name],
-                notes = row[IngredientDeltaTable.notes],
-                updatedAmount = row[BakeIngredientsTable.amount],
-                updatedName = row[BakeIngredientsTable.name],
-                updatedNotes = row[BakeIngredientsTable.notes],
-                notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
-                completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
-                order = row[BakeIngredientsTable.order],
-              )
+              getBakeIngredientPayloadForRow(row)
           }.groupBy({ it.first }, { it.second })
 
       val instructionVersionsByBake =
@@ -279,20 +198,7 @@ class BakeRepositoryImpl : BakeRepository {
           .orderBy(BakeInstructionsTable.order to SortOrder.ASC)
           .map { row ->
             row[BakeInstructionsTable.bake_id] to
-              BakeInstructionPayload(
-                bakeInstructionId = row[BakeInstructionsTable.id],
-                instructionId = row[InstructionDeltaTable.instruction_id],
-                instructionDeltaId = row[BakeInstructionsTable.instruction_delta_id],
-                version = row[InstructionDeltaTable.version],
-                description = row[InstructionDeltaTable.description],
-                notes = row[InstructionDeltaTable.notes],
-                updatedDescription = row[BakeInstructionsTable.description],
-                updatedNotes = row[BakeInstructionsTable.notes],
-                notesUpdatedToNull =
-                  row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
-                completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
-                order = row[BakeInstructionsTable.order],
-              )
+              getBakeInstructionPayloadForRow(row)
           }.groupBy({ it.first }, { it.second })
 
       bakeRows.map { row ->
@@ -317,25 +223,6 @@ class BakeRepositoryImpl : BakeRepository {
         )
       }
     }
-  }
-
-  fun getBakeRatings(bakeIds: List<Uuid>): Map<Uuid, BakeRating> {
-    val ratingsByBakeId =
-      BakeRatingsTable
-        .selectAll()
-        .where { BakeRatingsTable.bake_id inList bakeIds }
-        .associate { ratingRow ->
-          ratingRow[BakeRatingsTable.bake_id] to
-            BakeRating(
-              overall = ratingRow[BakeRatingsTable.overall],
-              taste = ratingRow[BakeRatingsTable.taste],
-              texture = ratingRow[BakeRatingsTable.texture],
-              appearance = ratingRow[BakeRatingsTable.appearance],
-              riseStructure = ratingRow[BakeRatingsTable.rise_structure],
-              difficulty = ratingRow[BakeRatingsTable.difficulty],
-            )
-        }
-    return ratingsByBakeId
   }
 
   // Load all details of all bakes
@@ -421,25 +308,7 @@ class BakeRepositoryImpl : BakeRepository {
           ).selectAll()
           .where { BakeIngredientsTable.bake_id eq bakeId }
           .orderBy(BakeIngredientsTable.order to SortOrder.ASC)
-          .map { row ->
-            val bakeIngredientAmount = row[BakeIngredientsTable.amount]
-            val bakeIngredientName = row[BakeIngredientsTable.name]
-            BakeIngredientPayload(
-              bakeIngredientId = row[BakeIngredientsTable.id],
-              ingredientId = row[IngredientDeltaTable.ingredient_id],
-              ingredientDeltaId = row[BakeIngredientsTable.ingredient_delta_id],
-              version = row[IngredientDeltaTable.version],
-              amount = row[IngredientDeltaTable.amount],
-              name = row[IngredientDeltaTable.name],
-              notes = row[IngredientDeltaTable.notes],
-              updatedAmount = row[BakeIngredientsTable.amount],
-              updatedName = row[BakeIngredientsTable.name],
-              updatedNotes = row[BakeIngredientsTable.notes],
-              notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
-              completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
-              order = row[BakeIngredientsTable.order],
-            )
-          }
+          .map { row -> getBakeIngredientPayloadForRow(row) }
 
       val instructionVersions =
         BakeInstructionsTable
@@ -451,21 +320,7 @@ class BakeRepositoryImpl : BakeRepository {
           ).selectAll()
           .where { BakeInstructionsTable.bake_id eq bakeId }
           .orderBy(BakeInstructionsTable.order to SortOrder.ASC)
-          .map { row ->
-            BakeInstructionPayload(
-              bakeInstructionId = row[BakeInstructionsTable.id],
-              instructionId = row[InstructionDeltaTable.instruction_id],
-              instructionDeltaId = row[BakeInstructionsTable.instruction_delta_id],
-              version = row[InstructionDeltaTable.version],
-              description = row[InstructionDeltaTable.description],
-              notes = row[InstructionDeltaTable.notes],
-              updatedDescription = row[BakeInstructionsTable.description],
-              updatedNotes = row[BakeInstructionsTable.notes],
-              notesUpdatedToNull = row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
-              completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
-              order = row[BakeInstructionsTable.order],
-            )
-          }
+          .map { row -> getBakeInstructionPayloadForRow(row) }
 
       val ratings = getBakeRatings(listOf(bakeId))[bakeId]
 
@@ -512,84 +367,6 @@ class BakeRepositoryImpl : BakeRepository {
 
       upsertBakeRatings(payload.bakeId, payload.ratings)
     }
-
-  @Suppress("CyclomaticComplexMethod")
-  private fun upsertBakeRatings(
-    bakeId: Uuid,
-    rating: PatchField<UpdateBakeRatingPayload>,
-  ) {
-    val payload =
-      when (rating) {
-        is PatchField.Absent -> return
-        is PatchField.Present -> rating.value ?: return
-      }
-
-    val existingId =
-      BakeRatingsTable
-        .selectAll()
-        .where { BakeRatingsTable.bake_id eq bakeId }
-        .singleOrNull()
-        ?.get(BakeRatingsTable.id)
-
-    if (existingId == null) {
-      BakeRatingsTable.insert {
-        it[BakeRatingsTable.id] = Uuid.random()
-        it[BakeRatingsTable.bake_id] = bakeId
-        it[BakeRatingsTable.created_at] = Instant.now()
-        when (val overall = payload.overall) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.overall] = overall.value
-        }
-        when (val taste = payload.taste) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.taste] = taste.value
-        }
-        when (val texture = payload.texture) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.texture] = texture.value
-        }
-        when (val appearance = payload.appearance) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.appearance] = appearance.value
-        }
-        when (val riseStructure = payload.riseStructure) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.rise_structure] = riseStructure.value
-        }
-        when (val difficulty = payload.difficulty) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.difficulty] = difficulty.value
-        }
-      }
-    } else {
-      BakeRatingsTable.update({ BakeRatingsTable.bake_id eq bakeId }) {
-        when (val overall = payload.overall) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.overall] = overall.value
-        }
-        when (val taste = payload.taste) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.taste] = taste.value
-        }
-        when (val texture = payload.texture) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.texture] = texture.value
-        }
-        when (val appearance = payload.appearance) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.appearance] = appearance.value
-        }
-        when (val riseStructure = payload.riseStructure) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.rise_structure] = riseStructure.value
-        }
-        when (val difficulty = payload.difficulty) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> it[BakeRatingsTable.difficulty] = difficulty.value
-        }
-      }
-    }
-  }
 
   override suspend fun deleteBake(id: Uuid): Unit =
     transaction {
@@ -654,7 +431,19 @@ class BakeRepositoryImpl : BakeRepository {
     transaction {
       val now = Instant.now()
 
-      markBakeComplete(bakeId, now)
+      val bakeRow =
+        BakesTable
+          .selectAll()
+          .where { BakesTable.id eq bakeId }
+          .singleOrNull() ?: throw NotFoundException("Bake", bakeId.toString())
+
+      if (bakeRow[BakesTable.end_datetime] != null) {
+        throw ConflictException("bakeAlreadyComplete")
+      }
+
+      BakesTable.update({ BakesTable.id eq bakeId }) {
+        it[BakesTable.end_datetime] = now
+      }
 
       BakeIngredientsTable
         .selectAll()
@@ -668,150 +457,4 @@ class BakeRepositoryImpl : BakeRepository {
         .toList()
         .forEach { row -> completeBakeInstruction(row, payload.setDeltasAsBest, now) }
     }
-
-  private fun markBakeComplete(
-    bakeId: Uuid,
-    now: Instant,
-  ) {
-    val bakeRow =
-      BakesTable
-        .selectAll()
-        .where { BakesTable.id eq bakeId }
-        .singleOrNull() ?: throw NotFoundException("Bake", bakeId.toString())
-
-    if (bakeRow[BakesTable.end_datetime] != null) {
-      throw ConflictException("bakeAlreadyComplete")
-    }
-
-    BakesTable.update({ BakesTable.id eq bakeId }) {
-      it[BakesTable.end_datetime] = now
-    }
-  }
-
-  private fun completeBakeIngredient(
-    row: ResultRow,
-    setAsBest: Boolean,
-    now: Instant,
-  ) {
-    val amount = row[BakeIngredientsTable.amount]
-    val name = row[BakeIngredientsTable.name]
-    val notes = row[BakeIngredientsTable.notes]
-
-    if (amount == null && name == null) return
-
-    if (amount == null || name == null) {
-      throw DataIntegrityException(
-        "BakeIngredient requires both amount and name to be set. Amount: $amount, Name: $name",
-      )
-    }
-
-    val currentDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
-    val currentDelta =
-      IngredientDeltaTable
-        .selectAll()
-        .where { IngredientDeltaTable.id eq currentDeltaId }
-        .singleOrNull() ?: throw NotFoundException("IngredientDelta", currentDeltaId.toString())
-    val ingredientId = currentDelta[IngredientDeltaTable.ingredient_id]
-
-    val newVersion = nextIngredientDeltaVersion(ingredientId)
-    val newDeltaId = Uuid.random()
-
-    IngredientDeltaTable.insert {
-      it[IngredientDeltaTable.id] = newDeltaId
-      it[IngredientDeltaTable.ingredient_id] = ingredientId
-      it[IngredientDeltaTable.version] = newVersion
-      it[IngredientDeltaTable.amount] = amount
-      it[IngredientDeltaTable.name] = name
-      it[IngredientDeltaTable.notes] = notes
-      it[IngredientDeltaTable.created_at] = now
-      it[IngredientDeltaTable.source_bake_id] = row[BakeIngredientsTable.bake_id]
-    }
-
-    BakeIngredientsTable.update({ BakeIngredientsTable.id eq row[BakeIngredientsTable.id] }) {
-      it[BakeIngredientsTable.completed_bake_delta_id] = newDeltaId
-    }
-
-    if (setAsBest) {
-      IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
-        it[IngredientsTable.best_version] = newVersion
-      }
-    }
-  }
-
-  private fun completeBakeInstruction(
-    row: ResultRow,
-    setAsBest: Boolean,
-    now: Instant,
-  ) {
-    val description = row[BakeInstructionsTable.description] ?: return
-    val notes = row[BakeInstructionsTable.notes]
-
-    val currentDeltaId = row[BakeInstructionsTable.instruction_delta_id]
-    val currentDelta =
-      InstructionDeltaTable
-        .selectAll()
-        .where { InstructionDeltaTable.id eq currentDeltaId }
-        .singleOrNull() ?: throw NotFoundException("InstructionDelta", currentDeltaId.toString())
-    val instructionId = currentDelta[InstructionDeltaTable.instruction_id]
-
-    val newVersion = nextInstructionDeltaVersion(instructionId)
-    val newDeltaId = Uuid.random()
-
-    InstructionDeltaTable.insert {
-      it[InstructionDeltaTable.id] = newDeltaId
-      it[InstructionDeltaTable.instruction_id] = instructionId
-      it[InstructionDeltaTable.version] = newVersion
-      it[InstructionDeltaTable.description] = description
-      it[InstructionDeltaTable.notes] = notes
-      it[InstructionDeltaTable.created_at] = now
-      it[InstructionDeltaTable.source_bake_id] = row[BakeInstructionsTable.bake_id]
-    }
-
-    BakeInstructionsTable.update({ BakeInstructionsTable.id eq row[BakeInstructionsTable.id] }) {
-      it[BakeInstructionsTable.completed_bake_delta_id] = newDeltaId
-    }
-
-    if (setAsBest) {
-      InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
-        it[InstructionsTable.best_version] = newVersion
-      }
-    }
-  }
-
-  private fun nextIngredientDeltaVersion(ingredientId: Uuid): Int {
-    val maxVersionExpr = IngredientDeltaTable.version.max()
-    val highestVersion =
-      IngredientDeltaTable
-        .select(maxVersionExpr)
-        .where { IngredientDeltaTable.ingredient_id eq ingredientId }
-        .single()[maxVersionExpr] ?: 0
-
-    return highestVersion + 1
-  }
-
-  private fun nextInstructionDeltaVersion(instructionId: Uuid): Int {
-    val maxVersionExpr = InstructionDeltaTable.version.max()
-    val highestVersion =
-      InstructionDeltaTable
-        .select(maxVersionExpr)
-        .where { InstructionDeltaTable.instruction_id eq instructionId }
-        .single()[maxVersionExpr] ?: 0
-
-    return highestVersion + 1
-  }
-
-  private fun assertNoOpenBake(recipeId: Uuid) {
-    val openBakeExists =
-      BakesTable
-        .selectAll()
-        .where {
-          (BakesTable.recipe_id eq recipeId) and
-            (BakesTable.end_datetime.isNull())
-        }.limit(1)
-        .any()
-
-    if (openBakeExists) {
-      throw ConflictException("existingOpenBake")
-    }
-  }
 }

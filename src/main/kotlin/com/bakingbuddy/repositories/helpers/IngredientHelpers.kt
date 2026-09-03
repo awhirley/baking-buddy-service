@@ -5,6 +5,7 @@ import com.bakingbuddy.database.IngredientDeltaTable
 import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
+import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
@@ -97,12 +98,6 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
 }
 
 data class BestIngredientDelta(
-  val deltaId: Uuid,
-  val ingredientId: Uuid,
   val bakeIngredientId: Uuid,
-  val version: Int,
-  val amount: String,
-  val name: String,
-  val notes: String?,
-  val order: Int,
+  val bestDelta: IngredientDeltaEntry,
 )

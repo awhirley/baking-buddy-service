@@ -4,6 +4,7 @@ import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.database.InstructionDeltaTable
 import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.models.instructions.Instruction
+import com.bakingbuddy.models.instructions.InstructionDeltaEntry
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
@@ -91,11 +92,6 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
 }
 
 data class BestInstructionDelta(
-  val deltaId: Uuid,
-  val instructionId: Uuid,
   val bakeInstructionId: Uuid,
-  val version: Int,
-  val description: String,
-  val notes: String?,
-  val order: Int,
+  val bestDelta: InstructionDeltaEntry,
 )

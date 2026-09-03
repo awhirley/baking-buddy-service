@@ -1,21 +1,21 @@
 package com.bakingbuddy.models.bakes
 
+import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
 import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
 @Serializable
 data class BakeIngredientPayload(
   val bakeIngredientId: Uuid,
-  val ingredientId: Uuid,
-  val ingredientDeltaId: Uuid,
-  val version: Int,
-  val amount: String,
-  val name: String,
-  val notes: String?,
-  val updatedAmount: String?,
-  val updatedName: String?,
-  val updatedNotes: String?,
-  val notesUpdatedToNull: Boolean,
+  val initialDeltaValues: IngredientDeltaEntry,
+  val updatedDeltaValues: BakeIngredient,
   val completedBakeDeltaId: Uuid?,
-  val order: Int,
+)
+
+@Serializable
+data class BakeIngredient(
+  val updatedAmount: String,
+  val updatedName: String,
+  val updatedNotes: String?,
+  val updatedOrder: Int,
 )
