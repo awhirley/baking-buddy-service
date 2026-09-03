@@ -95,7 +95,7 @@ private fun sampleIngredient(
     createdAt = Instant.now(),
     amount = "500g",
     name = "Flour",
-    order = null,
+    order = 1,
   )
 
 private fun sampleInstruction(
@@ -109,7 +109,7 @@ private fun sampleInstruction(
     notes = null,
     createdAt = Instant.now(),
     description = "Mix and knead",
-    order = null,
+    order = 1,
   )
 
 private fun validCreateRecipePayload() =
@@ -135,7 +135,7 @@ class InstructionRoutesTest {
       // Same double-receive() bug -- see note on the recipe PATCH test.
       val service = mockk<RecipeService>()
       val id = Uuid.random()
-      val payload = UpdateInstructionPayload(description = "Mix, knead, and rest", notes = null)
+      val payload = UpdateInstructionPayload(description = "Mix, knead, and rest", notes = null, order = 1)
       coEvery { service.updateInstruction(id, payload) } returns sampleInstruction(id)
       val client = setupTestApp(service)
 
@@ -158,7 +158,7 @@ class InstructionRoutesTest {
       val response =
         client.patch("/api/instructions/${Uuid.random()}") {
           contentType(ContentType.Application.Json)
-          setBody(UpdateInstructionPayload(description = "   ", notes = null))
+          setBody(UpdateInstructionPayload(description = "   ", notes = null, order = 1))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest

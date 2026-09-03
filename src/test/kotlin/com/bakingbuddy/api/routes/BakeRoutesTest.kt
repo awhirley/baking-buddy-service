@@ -51,7 +51,6 @@ private fun sampleBakeDetail(
   BakeDetail(
     id = id,
     recipeId = recipeId,
-    recipeName = "recipe name",
     elevation = 5280,
     notes = null,
     createdAt = Instant.now(),

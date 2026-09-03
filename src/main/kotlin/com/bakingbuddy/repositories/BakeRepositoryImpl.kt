@@ -55,6 +55,7 @@ class BakeRepositoryImpl : BakeRepository {
           additionalConstraint = { IngredientDeltaTable.version eq IngredientsTable.best_version },
         ).selectAll()
         .where { IngredientsTable.recipe_id eq recipeId }
+        .orderBy(IngredientDeltaTable.order to SortOrder.ASC)
         .map { row ->
           BestIngredientDelta(
             deltaId = row[IngredientDeltaTable.id],
@@ -64,6 +65,7 @@ class BakeRepositoryImpl : BakeRepository {
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
             notes = row[IngredientDeltaTable.notes],
+            order = row[IngredientDeltaTable.order],
           )
         }
 
@@ -93,6 +95,7 @@ class BakeRepositoryImpl : BakeRepository {
           additionalConstraint = { InstructionDeltaTable.version eq InstructionsTable.best_version },
         ).selectAll()
         .where { InstructionsTable.recipe_id eq recipeId }
+        .orderBy(InstructionDeltaTable.order to SortOrder.ASC)
         .map { row ->
           BestInstructionDelta(
             deltaId = row[InstructionDeltaTable.id],
@@ -101,6 +104,7 @@ class BakeRepositoryImpl : BakeRepository {
             version = row[InstructionDeltaTable.version],
             description = row[InstructionDeltaTable.description],
             notes = row[InstructionDeltaTable.notes],
+            order = row[InstructionDeltaTable.order],
           )
         }
 
@@ -167,7 +171,6 @@ class BakeRepositoryImpl : BakeRepository {
       val bakeDetail =
         BakeDetail(
           id = bakeId,
-          recipeName = recipe[RecipesTable.name],
           recipeId = recipeId,
           createdAt = createdAt,
           startDatetime = createdAt,
@@ -192,6 +195,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = null,
               notesUpdatedToNull = false,
               completedBakeDeltaId = null,
+              order = delta.order,
             )
           },
         instructionVersions =
@@ -207,6 +211,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = null,
               notesUpdatedToNull = false,
               completedBakeDeltaId = null,
+              order = delta.order,
             )
           },
       )
@@ -215,11 +220,10 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all bakes with ingredients and instructions
   override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
     return transaction {
-      val recipe =
-        RecipesTable
-          .selectAll()
-          .where { RecipesTable.id eq recipeId }
-          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       val bakeRows =
         BakesTable
@@ -241,6 +245,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = IngredientDeltaTable.id,
           ).selectAll()
           .where { BakeIngredientsTable.bake_id inList bakeIds }
+          .orderBy(BakeIngredientsTable.order to SortOrder.ASC)
           .map { row ->
             row[BakeIngredientsTable.bake_id] to
               BakeIngredientPayload(
@@ -256,6 +261,7 @@ class BakeRepositoryImpl : BakeRepository {
                 updatedNotes = row[BakeIngredientsTable.notes],
                 notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
                 completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
+                order = row[BakeIngredientsTable.order],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -268,6 +274,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = InstructionDeltaTable.id,
           ).selectAll()
           .where { BakeInstructionsTable.bake_id inList bakeIds }
+          .orderBy(BakeInstructionsTable.order to SortOrder.ASC)
           .map { row ->
             row[BakeInstructionsTable.bake_id] to
               BakeInstructionPayload(
@@ -282,6 +289,7 @@ class BakeRepositoryImpl : BakeRepository {
                 notesUpdatedToNull =
                   row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
                 completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
+                order = row[BakeInstructionsTable.order],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -291,7 +299,6 @@ class BakeRepositoryImpl : BakeRepository {
           BakeDetail(
             id = bakeId,
             recipeId = row[BakesTable.recipe_id],
-            recipeName = recipe[RecipesTable.name],
             elevation = row[BakesTable.elevation],
             notes = row[BakesTable.notes],
             createdAt = row[BakesTable.created_at],
@@ -334,7 +341,6 @@ class BakeRepositoryImpl : BakeRepository {
     transaction {
       val bakeRows =
         BakesTable
-          .join(RecipesTable, JoinType.INNER, onColumn = BakesTable.recipe_id, otherColumn = RecipesTable.id)
           .selectAll()
           .orderBy(
             BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST,
@@ -348,7 +354,6 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = row[BakesTable.id],
           recipeId = row[BakesTable.recipe_id],
-          recipeName = row[RecipesTable.name],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],
@@ -362,11 +367,10 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all details of all bakes for a certain recipe
   override suspend fun listBakesForRecipe(recipeId: Uuid): List<BakeDetail> {
     return transaction {
-      val recipe =
-        RecipesTable
-          .selectAll()
-          .where { RecipesTable.id eq recipeId }
-          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       val bakeRows =
         BakesTable
@@ -384,7 +388,6 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = bakeId,
           recipeId = row[BakesTable.recipe_id],
-          recipeName = recipe[RecipesTable.name],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],
@@ -401,7 +404,6 @@ class BakeRepositoryImpl : BakeRepository {
     transaction {
       val row =
         BakesTable
-          .join(RecipesTable, JoinType.INNER, onColumn = BakesTable.recipe_id, otherColumn = RecipesTable.id)
           .selectAll()
           .where { BakesTable.id eq bakeId }
           .singleOrNull()
@@ -416,6 +418,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = IngredientDeltaTable.id,
           ).selectAll()
           .where { BakeIngredientsTable.bake_id eq bakeId }
+          .orderBy(BakeIngredientsTable.order to SortOrder.ASC)
           .map { row ->
             val bakeIngredientAmount = row[BakeIngredientsTable.amount]
             val bakeIngredientName = row[BakeIngredientsTable.name]
@@ -432,6 +435,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = row[BakeIngredientsTable.notes],
               notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
               completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
+              order = row[BakeIngredientsTable.order],
             )
           }
 
@@ -444,6 +448,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = InstructionDeltaTable.id,
           ).selectAll()
           .where { BakeInstructionsTable.bake_id eq bakeId }
+          .orderBy(BakeInstructionsTable.order to SortOrder.ASC)
           .map { row ->
             BakeInstructionPayload(
               bakeInstructionId = row[BakeInstructionsTable.id],
@@ -456,6 +461,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = row[BakeInstructionsTable.notes],
               notesUpdatedToNull = row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
               completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
+              order = row[BakeInstructionsTable.order],
             )
           }
 
@@ -465,7 +471,6 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = bakeId,
           recipeId = row[BakesTable.recipe_id],
-          recipeName = row[RecipesTable.name],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],

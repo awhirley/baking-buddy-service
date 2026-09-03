@@ -6,6 +6,7 @@ import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -17,9 +18,10 @@ fun createIngredients(
   recipeId: Uuid,
   request: List<CreateIngredientPayload>,
 ): List<Ingredient> =
-  request.map { ingredient ->
+  request.mapIndexed { index, ingredient ->
     val ingredientId = Uuid.random()
     val createdAt = Instant.now()
+    val order = (index + 1) * 10
 
     val ingredientStatement =
       IngredientsTable.insert {
@@ -35,6 +37,7 @@ fun createIngredients(
       it[IngredientDeltaTable.amount] = ingredient.amount
       it[IngredientDeltaTable.name] = ingredient.name
       it[IngredientDeltaTable.created_at] = createdAt
+      it[IngredientDeltaTable.order] = order
     }
 
     Ingredient(
@@ -45,7 +48,7 @@ fun createIngredients(
       name = ingredient.name,
       notes = null,
       createdAt = ingredientStatement[IngredientsTable.created_at],
-      order = null,
+      order = order,
     )
   }
 
@@ -64,6 +67,7 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
       ingredientJoin
         .selectAll()
         .where { IngredientsTable.recipe_id eq recipeId }
+        .orderBy(IngredientDeltaTable.order to SortOrder.ASC)
         .map { row ->
           Ingredient(
             id = row[IngredientsTable.id],
@@ -73,7 +77,7 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
             createdAt = row[IngredientsTable.created_at],
             amount = row[IngredientDeltaTable.amount],
             name = row[IngredientDeltaTable.name],
-            order = row[IngredientsTable.order],
+            order = row[IngredientDeltaTable.order],
           )
         }
     }
@@ -100,4 +104,5 @@ data class BestIngredientDelta(
   val amount: String,
   val name: String,
   val notes: String?,
+  val order: Int,
 )

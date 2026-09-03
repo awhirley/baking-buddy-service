@@ -54,6 +54,7 @@ private fun sampleIngredientHistory(
           amount = "400g",
           name = "Flour",
           createdAt = Instant.now(),
+          order = 1,
         ),
         IngredientDeltaEntry(
           id = Uuid.random(),
@@ -62,6 +63,7 @@ private fun sampleIngredientHistory(
           amount = "500g",
           name = "Flour",
           createdAt = Instant.now(),
+          order = 1,
         ),
       ),
   )
@@ -82,6 +84,7 @@ private fun sampleInstructionHistory(
           version = 1,
           description = "Mix and knead",
           createdAt = Instant.now(),
+          order = 1,
         ),
       ),
   )

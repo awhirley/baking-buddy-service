@@ -101,7 +101,7 @@ private fun sampleIngredient(
     createdAt = Instant.now(),
     amount = "500g",
     name = "Flour",
-    order = null,
+    order = 1,
   )
 
 private fun sampleInstruction(
@@ -115,7 +115,7 @@ private fun sampleInstruction(
     notes = null,
     createdAt = Instant.now(),
     description = "Mix and knead",
-    order = null,
+    order = 1,
   )
 
 private fun validCreateRecipePayload() =

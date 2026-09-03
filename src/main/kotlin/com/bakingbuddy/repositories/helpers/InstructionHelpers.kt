@@ -5,6 +5,7 @@ import com.bakingbuddy.database.InstructionDeltaTable
 import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.models.instructions.Instruction
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -15,9 +16,10 @@ fun createInstructions(
   recipeId: Uuid,
   request: List<String>,
 ): List<Instruction> =
-  request.map { description ->
+  request.mapIndexed { index, description ->
     val instructionId = Uuid.random()
     val createdAt = Instant.now()
+    val order = (index + 1) * 10
 
     val instructionStatement =
       InstructionsTable.insert {
@@ -32,6 +34,7 @@ fun createInstructions(
       it[InstructionDeltaTable.version] = 1
       it[InstructionDeltaTable.description] = description
       it[InstructionDeltaTable.created_at] = createdAt
+      it[InstructionDeltaTable.order] = order
     }
 
     Instruction(
@@ -41,7 +44,7 @@ fun createInstructions(
       notes = null,
       createdAt = instructionStatement[InstructionsTable.created_at],
       description = description,
-      order = null,
+      order = order,
     )
   }
 
@@ -59,6 +62,7 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
     instructionJoin
       .selectAll()
       .where { InstructionsTable.recipe_id eq recipeId }
+      .orderBy(InstructionDeltaTable.order to SortOrder.ASC)
       .map { row ->
         Instruction(
           id = row[InstructionsTable.id],
@@ -67,7 +71,7 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
           notes = row[InstructionDeltaTable.notes],
           createdAt = row[InstructionsTable.created_at],
           description = row[InstructionDeltaTable.description],
-          order = row[InstructionsTable.order],
+          order = row[InstructionDeltaTable.order],
         )
       }
 
@@ -93,4 +97,5 @@ data class BestInstructionDelta(
   val version: Int,
   val description: String,
   val notes: String?,
+  val order: Int,
 )

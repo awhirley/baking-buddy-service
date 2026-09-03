@@ -12,5 +12,6 @@ data class IngredientDeltaEntry(
   val version: Int,
   val amount: String?,
   val name: String?,
+  val order: Int,
   @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )

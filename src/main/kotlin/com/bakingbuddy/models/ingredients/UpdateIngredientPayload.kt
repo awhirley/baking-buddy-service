@@ -7,4 +7,5 @@ data class UpdateIngredientPayload(
   val amount: String,
   val name: String,
   val notes: String?,
+  val order: Int,
 )
