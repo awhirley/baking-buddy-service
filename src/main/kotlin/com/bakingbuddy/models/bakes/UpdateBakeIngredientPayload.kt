@@ -11,6 +11,7 @@ data class UpdateBakeIngredientPayload(
   val bakeIngredientId: Uuid,
   val amount: String,
   val name: String,
+  val order: Int,
   @EncodeDefault(EncodeDefault.Mode.NEVER)
   @Serializable(with = PatchFieldSerializer::class)
   val notes: PatchField<String> = PatchField.Absent,
