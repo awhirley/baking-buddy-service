@@ -96,7 +96,7 @@ private fun sampleIngredient(
     createdAt = Instant.now(),
     amount = "500g",
     name = "Flour",
-    order = null,
+    order = 1,
   )
 
 private fun sampleInstruction(
@@ -110,7 +110,7 @@ private fun sampleInstruction(
     notes = null,
     createdAt = Instant.now(),
     description = "Mix and knead",
-    order = null,
+    order = 1,
   )
 
 private fun validCreateRecipePayload() =
@@ -137,7 +137,7 @@ class IngredientRoutesTest {
       // Will 500 rather than 200 until fixed.
       val service = mockk<RecipeService>()
       val id = Uuid.random()
-      val payload = UpdateIngredientPayload(name = "Flour", amount = "500g", notes = null)
+      val payload = UpdateIngredientPayload(name = "Flour", amount = "500g", notes = null, order = 1)
       coEvery { service.updateIngredient(id, payload) } returns sampleIngredient(id)
       val client = setupTestApp(service)
 
@@ -160,7 +160,7 @@ class IngredientRoutesTest {
       val response =
         client.patch("/api/ingredients/${Uuid.random()}") {
           contentType(ContentType.Application.Json)
-          setBody(UpdateIngredientPayload(name = "Flour", amount = "  ", notes = null))
+          setBody(UpdateIngredientPayload(name = "Flour", amount = "  ", notes = null, order = 1))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
@@ -177,7 +177,7 @@ class IngredientRoutesTest {
       val response =
         client.patch("/api/ingredients/${Uuid.random()}") {
           contentType(ContentType.Application.Json)
-          setBody(UpdateIngredientPayload(name = "  ", amount = "500g", notes = null))
+          setBody(UpdateIngredientPayload(name = "  ", amount = "500g", notes = null, order = 1))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest
@@ -193,7 +193,7 @@ class IngredientRoutesTest {
       val response =
         client.patch("/api/ingredients/not-a-uuid") {
           contentType(ContentType.Application.Json)
-          setBody(UpdateIngredientPayload(name = "Flour", amount = "500g", notes = null))
+          setBody(UpdateIngredientPayload(name = "Flour", amount = "500g", notes = null, order = 1))
         }
 
       response.status shouldBe HttpStatusCode.BadRequest

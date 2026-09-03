@@ -36,6 +36,7 @@ class DeltaRepositoryImpl : DeltaRepository {
               name = row[IngredientDeltaTable.name],
               amount = row[IngredientDeltaTable.amount],
               createdAt = row[IngredientDeltaTable.created_at],
+              order = row[IngredientDeltaTable.order],
             )
           }
 
@@ -67,6 +68,7 @@ class DeltaRepositoryImpl : DeltaRepository {
               version = row[InstructionDeltaTable.version],
               description = row[InstructionDeltaTable.description],
               createdAt = row[InstructionDeltaTable.created_at],
+              order = row[InstructionDeltaTable.order],
             )
           }
 

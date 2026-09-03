@@ -195,7 +195,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = null,
               notesUpdatedToNull = false,
               completedBakeDeltaId = null,
-              order = delta.order
+              order = delta.order,
             )
           },
         instructionVersions =
@@ -211,7 +211,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = null,
               notesUpdatedToNull = false,
               completedBakeDeltaId = null,
-              order = delta.order
+              order = delta.order,
             )
           },
       )
@@ -220,10 +220,10 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all bakes with ingredients and instructions
   override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
     return transaction {
-        RecipesTable
-          .selectAll()
-          .where { RecipesTable.id eq recipeId }
-          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       val bakeRows =
         BakesTable
@@ -367,10 +367,10 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all details of all bakes for a certain recipe
   override suspend fun listBakesForRecipe(recipeId: Uuid): List<BakeDetail> {
     return transaction {
-        RecipesTable
-          .selectAll()
-          .where { RecipesTable.id eq recipeId }
-          .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
 
       val bakeRows =
         BakesTable

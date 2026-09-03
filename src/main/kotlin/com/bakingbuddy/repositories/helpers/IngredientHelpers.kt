@@ -1,7 +1,6 @@
 package com.bakingbuddy.repositories.helpers
 
 import com.bakingbuddy.api.errors.DataIntegrityException
-import com.bakingbuddy.database.BakeInstructionsTable
 import com.bakingbuddy.database.IngredientDeltaTable
 import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
