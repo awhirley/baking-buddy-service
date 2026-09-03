@@ -193,6 +193,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = null,
               notesUpdatedToNull = false,
               completedBakeDeltaId = null,
+              order = delta.order
             )
           },
         instructionVersions =
@@ -208,6 +209,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = null,
               notesUpdatedToNull = false,
               completedBakeDeltaId = null,
+              order = delta.order
             )
           },
       )
@@ -256,6 +258,7 @@ class BakeRepositoryImpl : BakeRepository {
                 updatedNotes = row[BakeIngredientsTable.notes],
                 notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
                 completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
+                order = row[BakeIngredientsTable.order],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -282,6 +285,7 @@ class BakeRepositoryImpl : BakeRepository {
                 notesUpdatedToNull =
                   row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
                 completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
+                order = row[BakeInstructionsTable.order],
               )
           }.groupBy({ it.first }, { it.second })
 
@@ -426,6 +430,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = row[BakeIngredientsTable.notes],
               notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
               completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
+              order = row[BakeIngredientsTable.order],
             )
           }
 
@@ -450,6 +455,7 @@ class BakeRepositoryImpl : BakeRepository {
               updatedNotes = row[BakeInstructionsTable.notes],
               notesUpdatedToNull = row[BakeInstructionsTable.notes] == null && row[InstructionDeltaTable.notes] != null,
               completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
+              order = row[BakeInstructionsTable.order],
             )
           }
 
