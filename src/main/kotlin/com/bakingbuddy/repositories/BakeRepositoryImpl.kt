@@ -55,6 +55,7 @@ class BakeRepositoryImpl : BakeRepository {
           additionalConstraint = { IngredientDeltaTable.version eq IngredientsTable.best_version },
         ).selectAll()
         .where { IngredientsTable.recipe_id eq recipeId }
+        .orderBy(IngredientDeltaTable.order to SortOrder.ASC)
         .map { row ->
           BestIngredientDelta(
             deltaId = row[IngredientDeltaTable.id],
@@ -94,6 +95,7 @@ class BakeRepositoryImpl : BakeRepository {
           additionalConstraint = { InstructionDeltaTable.version eq InstructionsTable.best_version },
         ).selectAll()
         .where { InstructionsTable.recipe_id eq recipeId }
+        .orderBy(InstructionDeltaTable.order to SortOrder.ASC)
         .map { row ->
           BestInstructionDelta(
             deltaId = row[InstructionDeltaTable.id],
@@ -243,6 +245,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = IngredientDeltaTable.id,
           ).selectAll()
           .where { BakeIngredientsTable.bake_id inList bakeIds }
+          .orderBy(BakeIngredientsTable.order to SortOrder.ASC)
           .map { row ->
             row[BakeIngredientsTable.bake_id] to
               BakeIngredientPayload(
@@ -271,6 +274,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = InstructionDeltaTable.id,
           ).selectAll()
           .where { BakeInstructionsTable.bake_id inList bakeIds }
+          .orderBy(BakeInstructionsTable.order to SortOrder.ASC)
           .map { row ->
             row[BakeInstructionsTable.bake_id] to
               BakeInstructionPayload(
@@ -414,6 +418,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = IngredientDeltaTable.id,
           ).selectAll()
           .where { BakeIngredientsTable.bake_id eq bakeId }
+          .orderBy(BakeIngredientsTable.order to SortOrder.ASC)
           .map { row ->
             val bakeIngredientAmount = row[BakeIngredientsTable.amount]
             val bakeIngredientName = row[BakeIngredientsTable.name]
@@ -443,6 +448,7 @@ class BakeRepositoryImpl : BakeRepository {
             otherColumn = InstructionDeltaTable.id,
           ).selectAll()
           .where { BakeInstructionsTable.bake_id eq bakeId }
+          .orderBy(BakeInstructionsTable.order to SortOrder.ASC)
           .map { row ->
             BakeInstructionPayload(
               bakeInstructionId = row[BakeInstructionsTable.id],

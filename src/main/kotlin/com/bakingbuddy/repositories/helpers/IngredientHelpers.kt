@@ -1,11 +1,13 @@
 package com.bakingbuddy.repositories.helpers
 
 import com.bakingbuddy.api.errors.DataIntegrityException
+import com.bakingbuddy.database.BakeInstructionsTable
 import com.bakingbuddy.database.IngredientDeltaTable
 import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -66,6 +68,7 @@ fun getIngredientsForRecipe(recipeId: Uuid): List<Ingredient> {
       ingredientJoin
         .selectAll()
         .where { IngredientsTable.recipe_id eq recipeId }
+        .orderBy(IngredientDeltaTable.order to SortOrder.ASC)
         .map { row ->
           Ingredient(
             id = row[IngredientsTable.id],

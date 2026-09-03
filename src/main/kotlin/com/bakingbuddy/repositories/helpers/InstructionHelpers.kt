@@ -1,10 +1,12 @@
 package com.bakingbuddy.repositories.helpers
 
 import com.bakingbuddy.api.errors.DataIntegrityException
+import com.bakingbuddy.database.IngredientDeltaTable
 import com.bakingbuddy.database.InstructionDeltaTable
 import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.models.instructions.Instruction
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -61,6 +63,7 @@ fun getInstructionsForRecipe(recipeId: Uuid): List<Instruction> {
     instructionJoin
       .selectAll()
       .where { InstructionsTable.recipe_id eq recipeId }
+      .orderBy(InstructionDeltaTable.order to SortOrder.ASC)
       .map { row ->
         Instruction(
           id = row[InstructionsTable.id],
