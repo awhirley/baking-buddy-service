@@ -102,6 +102,7 @@ class BakeRepositoryImpl : BakeRepository {
             version = row[InstructionDeltaTable.version],
             description = row[InstructionDeltaTable.description],
             notes = row[InstructionDeltaTable.notes],
+            order = row[InstructionDeltaTable.order],
           )
         }
 
@@ -168,7 +169,6 @@ class BakeRepositoryImpl : BakeRepository {
       val bakeDetail =
         BakeDetail(
           id = bakeId,
-          recipeName = recipe[RecipesTable.name],
           recipeId = recipeId,
           createdAt = createdAt,
           startDatetime = createdAt,
@@ -216,7 +216,6 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all bakes with ingredients and instructions
   override suspend fun listBakesWithProcedure(recipeId: Uuid): List<Bake> {
     return transaction {
-      val recipe =
         RecipesTable
           .selectAll()
           .where { RecipesTable.id eq recipeId }
@@ -292,7 +291,6 @@ class BakeRepositoryImpl : BakeRepository {
           BakeDetail(
             id = bakeId,
             recipeId = row[BakesTable.recipe_id],
-            recipeName = recipe[RecipesTable.name],
             elevation = row[BakesTable.elevation],
             notes = row[BakesTable.notes],
             createdAt = row[BakesTable.created_at],
@@ -335,7 +333,6 @@ class BakeRepositoryImpl : BakeRepository {
     transaction {
       val bakeRows =
         BakesTable
-          .join(RecipesTable, JoinType.INNER, onColumn = BakesTable.recipe_id, otherColumn = RecipesTable.id)
           .selectAll()
           .orderBy(
             BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST,
@@ -349,7 +346,6 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = row[BakesTable.id],
           recipeId = row[BakesTable.recipe_id],
-          recipeName = row[RecipesTable.name],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],
@@ -363,7 +359,6 @@ class BakeRepositoryImpl : BakeRepository {
   // Load all details of all bakes for a certain recipe
   override suspend fun listBakesForRecipe(recipeId: Uuid): List<BakeDetail> {
     return transaction {
-      val recipe =
         RecipesTable
           .selectAll()
           .where { RecipesTable.id eq recipeId }
@@ -385,7 +380,6 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = bakeId,
           recipeId = row[BakesTable.recipe_id],
-          recipeName = recipe[RecipesTable.name],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],
@@ -402,7 +396,6 @@ class BakeRepositoryImpl : BakeRepository {
     transaction {
       val row =
         BakesTable
-          .join(RecipesTable, JoinType.INNER, onColumn = BakesTable.recipe_id, otherColumn = RecipesTable.id)
           .selectAll()
           .where { BakesTable.id eq bakeId }
           .singleOrNull()
@@ -466,7 +459,6 @@ class BakeRepositoryImpl : BakeRepository {
         BakeDetail(
           id = bakeId,
           recipeId = row[BakesTable.recipe_id],
-          recipeName = row[RecipesTable.name],
           elevation = row[BakesTable.elevation],
           notes = row[BakesTable.notes],
           createdAt = row[BakesTable.created_at],

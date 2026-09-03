@@ -47,7 +47,7 @@ fun createIngredients(
       name = ingredient.name,
       notes = null,
       createdAt = ingredientStatement[IngredientsTable.created_at],
-      order = null,
+      order = order,
     )
   }
 

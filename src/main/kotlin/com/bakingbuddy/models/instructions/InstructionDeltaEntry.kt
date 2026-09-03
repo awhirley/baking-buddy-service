@@ -11,6 +11,6 @@ data class InstructionDeltaEntry(
   val instructionId: Uuid,
   val version: Int,
   val description: String?,
-  val order: Int?,
+  val order: Int,
   @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )

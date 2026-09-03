@@ -10,7 +10,7 @@ object BakeIngredientsTable : Table("bake_ingredients") {
   val name = text("name").nullable()
   val notes = text("notes").nullable()
   val completed_bake_delta_id = uuid("completed_bake_delta_id").nullable()
-  val order = integer("order").nullable()
+  val order = integer("order")
 
   override val primaryKey = PrimaryKey(id)
 }
