@@ -15,4 +15,6 @@ data class BakeIngredientPayload(
   val updatedAmount: String?,
   val updatedName: String?,
   val updatedNotes: String?,
+  val notesUpdatedToNull: Boolean,
+  val completedBakeDeltaId: Uuid?,
 )
