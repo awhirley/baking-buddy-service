@@ -490,14 +490,16 @@ class BakeRepositoryImpl : BakeRepository {
         .where { BakesTable.id eq payload.bakeId }
         .singleOrNull() ?: throw NotFoundException("Bake", payload.bakeId.toString())
 
-      BakesTable.update({ BakesTable.id eq payload.bakeId }) { statement ->
-        when (val elevation = payload.elevation) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> statement[BakesTable.elevation] = elevation.value
-        }
-        when (val notes = payload.notes) {
-          is PatchField.Absent -> {}
-          is PatchField.Present -> statement[BakesTable.notes] = notes.value
+      if (payload.elevation is PatchField.Present || payload.notes is PatchField.Present) {
+        BakesTable.update({ BakesTable.id eq payload.bakeId }) { statement ->
+          when (val elevation = payload.elevation) {
+            is PatchField.Absent -> {}
+            is PatchField.Present -> statement[BakesTable.elevation] = elevation.value
+          }
+          when (val notes = payload.notes) {
+            is PatchField.Absent -> {}
+            is PatchField.Present -> statement[BakesTable.notes] = notes.value
+          }
         }
       }
 
