@@ -16,5 +16,5 @@ data class BakeInstructionPayload(
 data class BakeInstruction(
   val updatedDescription: String,
   val updatedNotes: String?,
-  val order: Int,
+  val updatedOrder: Int,
 )

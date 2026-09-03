@@ -17,5 +17,5 @@ data class BakeIngredient(
   val updatedAmount: String,
   val updatedName: String,
   val updatedNotes: String?,
-  val order: Int,
+  val updatedOrder: Int,
 )
