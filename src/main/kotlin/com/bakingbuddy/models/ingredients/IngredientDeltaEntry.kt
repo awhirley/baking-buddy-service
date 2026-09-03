@@ -10,8 +10,9 @@ data class IngredientDeltaEntry(
   val id: Uuid,
   val ingredientId: Uuid,
   val version: Int,
-  val amount: String?,
-  val name: String?,
+  val amount: String,
+  val name: String,
+  val notes: String?,
   val order: Int,
   @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )

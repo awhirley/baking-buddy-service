@@ -15,7 +15,9 @@ import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.database.RecipesTable
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
+import com.bakingbuddy.models.bakes.BakeIngredient
 import com.bakingbuddy.models.bakes.BakeIngredientPayload
+import com.bakingbuddy.models.bakes.BakeInstruction
 import com.bakingbuddy.models.bakes.BakeInstructionPayload
 import com.bakingbuddy.models.bakes.BakeRating
 import com.bakingbuddy.models.bakes.CompleteBakePayload
@@ -23,6 +25,8 @@ import com.bakingbuddy.models.bakes.UpdateBakeIngredientPayload
 import com.bakingbuddy.models.bakes.UpdateBakeInstructionPayload
 import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.models.bakes.UpdateBakeRatingPayload
+import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
+import com.bakingbuddy.models.instructions.InstructionDeltaEntry
 import com.bakingbuddy.repositories.helpers.BestIngredientDelta
 import com.bakingbuddy.repositories.helpers.BestInstructionDelta
 import org.jetbrains.exposed.v1.core.JoinType
@@ -58,14 +62,17 @@ class BakeRepositoryImpl : BakeRepository {
         .orderBy(IngredientDeltaTable.order to SortOrder.ASC)
         .map { row ->
           BestIngredientDelta(
-            deltaId = row[IngredientDeltaTable.id],
-            ingredientId = row[IngredientDeltaTable.ingredient_id],
             bakeIngredientId = Uuid.random(),
-            version = row[IngredientDeltaTable.version],
-            amount = row[IngredientDeltaTable.amount],
-            name = row[IngredientDeltaTable.name],
-            notes = row[IngredientDeltaTable.notes],
-            order = row[IngredientDeltaTable.order],
+            bestDelta = IngredientDeltaEntry(
+              id = row[IngredientDeltaTable.id],
+              ingredientId = row[IngredientDeltaTable.ingredient_id],
+              version = row[IngredientDeltaTable.version],
+              amount = row[IngredientDeltaTable.amount],
+              name = row[IngredientDeltaTable.name],
+              notes = row[IngredientDeltaTable.notes],
+              order = row[IngredientDeltaTable.order],
+              createdAt = row[IngredientDeltaTable.created_at]
+            ),
           )
         }
 
@@ -98,13 +105,16 @@ class BakeRepositoryImpl : BakeRepository {
         .orderBy(InstructionDeltaTable.order to SortOrder.ASC)
         .map { row ->
           BestInstructionDelta(
-            deltaId = row[InstructionDeltaTable.id],
-            instructionId = row[InstructionDeltaTable.instruction_id],
             bakeInstructionId = Uuid.random(),
-            version = row[InstructionDeltaTable.version],
-            description = row[InstructionDeltaTable.description],
-            notes = row[InstructionDeltaTable.notes],
-            order = row[InstructionDeltaTable.order],
+            bestDelta = InstructionDeltaEntry(
+              id = row[InstructionDeltaTable.id],
+              instructionId = row[InstructionDeltaTable.instruction_id],
+              version = row[InstructionDeltaTable.version],
+              description = row[InstructionDeltaTable.description],
+              notes = row[InstructionDeltaTable.notes],
+              order = row[InstructionDeltaTable.order],
+              createdAt = row[InstructionDeltaTable.created_at],
+            ),
           )
         }
 
@@ -125,7 +135,6 @@ class BakeRepositoryImpl : BakeRepository {
 
   override suspend fun createBake(recipeId: Uuid): Bake =
     transaction {
-      val recipe =
         RecipesTable
           .selectAll()
           .where { RecipesTable.id eq recipeId }
@@ -151,11 +160,11 @@ class BakeRepositoryImpl : BakeRepository {
         BakeIngredientsTable.insert {
           it[BakeIngredientsTable.id] = delta.bakeIngredientId
           it[BakeIngredientsTable.bake_id] = bakeId
-          it[BakeIngredientsTable.ingredient_delta_id] = delta.deltaId
-          it[BakeIngredientsTable.amount] = null
-          it[BakeIngredientsTable.name] = null
-          it[BakeIngredientsTable.notes] = null
-          it[BakeIngredientsTable.order] = delta.order
+          it[BakeIngredientsTable.ingredient_delta_id] = delta.bestDelta.id
+          it[BakeIngredientsTable.amount] = delta.bestDelta.amount
+          it[BakeIngredientsTable.name] = delta.bestDelta.name
+          it[BakeIngredientsTable.notes] = delta.bestDelta.notes
+          it[BakeIngredientsTable.order] = delta.bestDelta.order
         }
       }
 
@@ -163,10 +172,10 @@ class BakeRepositoryImpl : BakeRepository {
         BakeInstructionsTable.insert {
           it[BakeInstructionsTable.id] = delta.bakeInstructionId
           it[BakeInstructionsTable.bake_id] = bakeId
-          it[BakeInstructionsTable.instruction_delta_id] = delta.deltaId
-          it[BakeInstructionsTable.description] = null
-          it[BakeInstructionsTable.notes] = null
-          it[BakeInstructionsTable.order] = delta.order
+          it[BakeInstructionsTable.instruction_delta_id] = delta.bestDelta.id
+          it[BakeInstructionsTable.description] = delta.bestDelta.description
+          it[BakeInstructionsTable.notes] = delta.bestDelta.notes
+          it[BakeInstructionsTable.order] = delta.bestDelta.order
         }
       }
 
@@ -186,34 +195,44 @@ class BakeRepositoryImpl : BakeRepository {
           ingredientDeltas.map { delta ->
             BakeIngredientPayload(
               bakeIngredientId = delta.bakeIngredientId,
-              ingredientId = delta.ingredientId,
-              ingredientDeltaId = delta.deltaId,
-              version = delta.version,
-              amount = delta.amount,
-              name = delta.name,
-              notes = delta.notes,
-              updatedAmount = null,
-              updatedName = null,
-              updatedNotes = null,
-              notesUpdatedToNull = false,
+              initialDeltaValues = IngredientDeltaEntry(
+                id = delta.bestDelta.id,
+                ingredientId = delta.bestDelta.ingredientId,
+                version = delta.bestDelta.version,
+                amount = delta.bestDelta.amount,
+                name = delta.bestDelta.name,
+                notes = delta.bestDelta.notes,
+                order = delta.bestDelta.order,
+                createdAt = delta.bestDelta.createdAt,
+              ),
+              updatedDeltaValues = BakeIngredient(
+                updatedAmount = delta.bestDelta.amount,
+                updatedName = delta.bestDelta.name,
+                updatedNotes = delta.bestDelta.notes,
+                order = delta.bestDelta.order,
+              ),
               completedBakeDeltaId = null,
-              order = delta.order,
             )
           },
         instructionVersions =
           instructionDeltas.map { delta ->
             BakeInstructionPayload(
               bakeInstructionId = delta.bakeInstructionId,
-              instructionId = delta.instructionId,
-              instructionDeltaId = delta.deltaId,
-              version = delta.version,
-              description = delta.description,
-              notes = delta.notes,
-              updatedDescription = null,
-              updatedNotes = null,
-              notesUpdatedToNull = false,
+              initialDeltaValues = InstructionDeltaEntry(
+                id = delta.bestDelta.id,
+                instructionId = delta.bestDelta.instructionId,
+                version = delta.bestDelta.version,
+                description = delta.bestDelta.description,
+                notes = delta.bestDelta.notes,
+                order = delta.bestDelta.order,
+                createdAt = delta.bestDelta.createdAt,
+              ),
+              updatedDeltaValues = BakeInstruction(
+                updatedDescription = delta.bestDelta.description,
+                updatedNotes = delta.bestDelta.notes,
+                order = delta.bestDelta.order,
+              ),
               completedBakeDeltaId = null,
-              order = delta.order,
             )
           },
       )
@@ -252,18 +271,23 @@ class BakeRepositoryImpl : BakeRepository {
             row[BakeIngredientsTable.bake_id] to
               BakeIngredientPayload(
                 bakeIngredientId = row[BakeIngredientsTable.id],
-                ingredientId = row[IngredientDeltaTable.ingredient_id],
-                ingredientDeltaId = row[BakeIngredientsTable.ingredient_delta_id],
-                version = row[IngredientDeltaTable.version],
-                amount = row[IngredientDeltaTable.amount],
-                name = row[IngredientDeltaTable.name],
-                notes = row[IngredientDeltaTable.notes],
-                updatedAmount = row[BakeIngredientsTable.amount],
-                updatedName = row[BakeIngredientsTable.name],
-                updatedNotes = row[BakeIngredientsTable.notes],
-                notesUpdatedToNull = row[BakeIngredientsTable.notes] == null && row[IngredientDeltaTable.notes] != null,
+                initialDeltaValues = IngredientDeltaEntry(
+                  ingredientId = row[IngredientDeltaTable.ingredient_id],
+                  id = row[BakeIngredientsTable.ingredient_delta_id],
+                  version = row[IngredientDeltaTable.version],
+                  amount = row[IngredientDeltaTable.amount],
+                  name = row[IngredientDeltaTable.name],
+                  notes = row[IngredientDeltaTable.notes],
+                  createdAt = row[IngredientDeltaTable.created_at],
+                  order = row[BakeIngredientsTable.order],
+                ),
+                updatedDeltaValues = BakeIngredient(
+                  updatedAmount = row[BakeIngredientsTable.amount],
+                  updatedName = row[BakeIngredientsTable.name],
+                  updatedNotes = row[BakeIngredientsTable.notes],
+                  order = row[BakeIngredientsTable.order],
+                ),
                 completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
-                order = row[BakeIngredientsTable.order],
               )
           }.groupBy({ it.first }, { it.second })
 
