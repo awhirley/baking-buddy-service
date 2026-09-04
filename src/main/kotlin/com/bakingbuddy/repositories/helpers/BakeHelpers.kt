@@ -273,6 +273,7 @@ fun completeBakeIngredient(
   val amount = row[BakeIngredientsTable.amount]
   val name = row[BakeIngredientsTable.name]
   val notes = row[BakeIngredientsTable.notes]
+  val order = row[BakeIngredientsTable.order]
 
   val currentDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
   val currentDelta =
@@ -281,6 +282,14 @@ fun completeBakeIngredient(
       .where { IngredientDeltaTable.id eq currentDeltaId }
       .singleOrNull() ?: throw NotFoundException("IngredientDelta", currentDeltaId.toString())
   val ingredientId = currentDelta[IngredientDeltaTable.ingredient_id]
+
+  if (
+    currentDelta[IngredientDeltaTable.amount] == amount &&
+    currentDelta[IngredientDeltaTable.name] == name &&
+    currentDelta[IngredientDeltaTable.notes] == notes
+    ) {
+    return
+  }
 
   val newVersion = nextIngredientDeltaVersion(ingredientId)
   val newDeltaId = Uuid.random()
@@ -292,6 +301,7 @@ fun completeBakeIngredient(
     it[IngredientDeltaTable.amount] = amount
     it[IngredientDeltaTable.name] = name
     it[IngredientDeltaTable.notes] = notes
+    it[IngredientDeltaTable.order] = order
     it[IngredientDeltaTable.created_at] = now
     it[IngredientDeltaTable.source_bake_id] = row[BakeIngredientsTable.bake_id]
   }
@@ -314,6 +324,7 @@ fun completeBakeInstruction(
 ) {
   val description = row[BakeInstructionsTable.description]
   val notes = row[BakeInstructionsTable.notes]
+  val order = row[BakeInstructionsTable.order]
 
   val currentDeltaId = row[BakeInstructionsTable.instruction_delta_id]
   val currentDelta =
@@ -322,6 +333,14 @@ fun completeBakeInstruction(
       .where { InstructionDeltaTable.id eq currentDeltaId }
       .singleOrNull() ?: throw NotFoundException("InstructionDelta", currentDeltaId.toString())
   val instructionId = currentDelta[InstructionDeltaTable.instruction_id]
+
+  if (
+    currentDelta[InstructionDeltaTable.description] == description &&
+    currentDelta[InstructionDeltaTable.notes] == notes
+  ) {
+    return
+  }
+
 
   val newVersion = nextInstructionDeltaVersion(instructionId)
   val newDeltaId = Uuid.random()
@@ -332,6 +351,7 @@ fun completeBakeInstruction(
     it[InstructionDeltaTable.version] = newVersion
     it[InstructionDeltaTable.description] = description
     it[InstructionDeltaTable.notes] = notes
+    it[InstructionDeltaTable.order] = order
     it[InstructionDeltaTable.created_at] = now
     it[InstructionDeltaTable.source_bake_id] = row[BakeInstructionsTable.bake_id]
   }
