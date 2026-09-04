@@ -165,7 +165,9 @@ class BakeRepositoryImpl : BakeRepository {
         BakesTable
           .selectAll()
           .where { BakesTable.recipe_id eq recipeId }
-          .toList()
+          .orderBy(
+            BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST,
+          ).toList()
 
       if (bakeRows.isEmpty()) return@transaction emptyList()
       val bakeIds = bakeRows.map { it[BakesTable.id] }
@@ -233,7 +235,6 @@ class BakeRepositoryImpl : BakeRepository {
           .selectAll()
           .orderBy(
             BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST,
-            BakesTable.start_datetime to SortOrder.DESC,
           ).toList()
 
       val bakeIds = bakeRows.map { it[BakesTable.id] }
@@ -265,7 +266,9 @@ class BakeRepositoryImpl : BakeRepository {
         BakesTable
           .selectAll()
           .where { BakesTable.recipe_id eq recipeId }
-          .toList()
+          .orderBy(
+            BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST,
+          ).toList()
 
       if (bakeRows.isEmpty()) return@transaction emptyList()
 
