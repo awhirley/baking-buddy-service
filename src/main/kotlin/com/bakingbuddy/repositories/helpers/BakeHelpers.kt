@@ -287,7 +287,7 @@ fun completeBakeIngredient(
     currentDelta[IngredientDeltaTable.amount] == amount &&
     currentDelta[IngredientDeltaTable.name] == name &&
     currentDelta[IngredientDeltaTable.notes] == notes
-    ) {
+  ) {
     return
   }
 
@@ -340,7 +340,6 @@ fun completeBakeInstruction(
   ) {
     return
   }
-
 
   val newVersion = nextInstructionDeltaVersion(instructionId)
   val newDeltaId = Uuid.random()
