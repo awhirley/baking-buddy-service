@@ -8,3 +8,4 @@ ktor:
       - com.bakingbuddy.plugins.SerializationKt.configureSerialization
       - com.bakingbuddy.plugins.StatusPageKt.configureStatusPages
       - com.bakingbuddy.plugins.OpenApiKt.configureOpenApi
+      - com.bakingbuddy.plugins.SupabaseKt.configureSupabase
