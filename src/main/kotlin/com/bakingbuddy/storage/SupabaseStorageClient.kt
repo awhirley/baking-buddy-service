@@ -23,6 +23,7 @@ class SupabaseStorageClient(
   ): String {
     val response: HttpResponse =
       httpClient.post("${config.url}/storage/v1/object/${config.storageBucket}/$path") {
+        header("apikey", config.secretKey)
         header("Authorization", "Bearer ${config.secretKey}")
         contentType(ContentType.parse(contentType))
         setBody(bytes)
@@ -32,7 +33,7 @@ class SupabaseStorageClient(
       throw BadRequestException("Failed to upload image: ${response.status}")
     }
 
-    return "${config.url}/storage/v1/object/public/${config.storageBucket}/$path"
+    return getUrlForPath(path)
   }
 
   suspend fun deleteImage(path: String) {
@@ -45,4 +46,7 @@ class SupabaseStorageClient(
       throw BadRequestException("Failed to delete image: ${response.status}")
     }
   }
+
+  suspend fun getUrlForPath(path: String): String =
+    "${config.url}/storage/v1/object/public/${config.storageBucket}/$path"
 }

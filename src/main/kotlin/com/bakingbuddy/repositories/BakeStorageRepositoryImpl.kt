@@ -1,10 +1,48 @@
 package com.bakingbuddy.repositories
 
-import com.bakingbuddy.models.bakeStorage.BakeImageResponse
+import com.bakingbuddy.database.BakeImagesTable
+import com.bakingbuddy.models.bakeStorage.BakeImage
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.time.Instant
 import kotlin.uuid.Uuid
 
 class BakeStorageRepositoryImpl : BakeStorageRepository {
-  override suspend fun uploadImageToBake(id: Uuid, path: String, imageUrl: String): Unit {
-    // upload to DB
+  override suspend fun uploadImageToBake(
+    bakeId: Uuid,
+    path: String,
+  ) = transaction {
+    val bakeImageId = Uuid.random()
+    val createdAt = Instant.now()
+
+    BakeImagesTable.insert {
+      it[BakeImagesTable.id] = bakeImageId
+      it[BakeImagesTable.bake_id] = bakeId
+      it[BakeImagesTable.created_at] = createdAt
+      it[BakeImagesTable.path] = path
+    }
+
+    return@transaction
   }
+
+  override suspend fun getImagesForBake(bakeId: Uuid): List<BakeImage> =
+    transaction {
+      val bakeImageRows =
+        BakeImagesTable
+          .selectAll()
+          .where { BakeImagesTable.bake_id eq bakeId }
+          .orderBy(BakeImagesTable.created_at to SortOrder.DESC)
+
+      bakeImageRows.map {
+        BakeImage(
+          bakeId = it[BakeImagesTable.bake_id],
+          path = it[BakeImagesTable.path],
+          createdAt = it[BakeImagesTable.created_at],
+          imageUrl = null,
+        )
+      }
+    }
 }

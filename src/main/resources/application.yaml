@@ -4,8 +4,8 @@ ktor:
   application:
     modules:
       - com.bakingbuddy.plugins.DatabaseKt.configureDatabase
+      - com.bakingbuddy.plugins.SupabaseKt.configureSupabase
       - com.bakingbuddy.plugins.RoutingKt.configureRouting
       - com.bakingbuddy.plugins.SerializationKt.configureSerialization
       - com.bakingbuddy.plugins.StatusPageKt.configureStatusPages
       - com.bakingbuddy.plugins.OpenApiKt.configureOpenApi
-      - com.bakingbuddy.plugins.SupabaseKt.configureSupabase

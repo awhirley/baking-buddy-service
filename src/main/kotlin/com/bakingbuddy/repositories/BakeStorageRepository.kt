@@ -1,10 +1,13 @@
 package com.bakingbuddy.repositories
 
-import com.bakingbuddy.models.bakeStorage.BakeImageResponse
-import com.bakingbuddy.models.ingredients.IngredientHistory
-import com.bakingbuddy.models.instructions.InstructionHistory
+import com.bakingbuddy.models.bakeStorage.BakeImage
 import kotlin.uuid.Uuid
 
 interface BakeStorageRepository {
-  suspend fun uploadImageToBake(id: Uuid, path: String, imageUrl: String): Unit
+  suspend fun uploadImageToBake(
+    bakeId: Uuid,
+    path: String,
+  ): Unit
+
+  suspend fun getImagesForBake(bakeId: Uuid): List<BakeImage>
 }

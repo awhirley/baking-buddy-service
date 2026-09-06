@@ -21,8 +21,8 @@ fun Application.configureRouting() {
   val recipeService = RecipeService()
   val deltaService = DeltaService()
   val bakeService = BakeService()
-  val bakeStorageService = BakeStorageService()
   val supabaseStorageClient = attributes[SupabaseStorageClientKey]
+  val bakeStorageService = BakeStorageService(supabaseStorageClient)
 
   install(CORS) {
     allowHost("localhost:5173")
@@ -46,6 +46,6 @@ fun Application.configureRouting() {
     deltaRoutes(deltaService)
     bakeRoutes(bakeService)
 
-    bakeStorageRoutes(supabaseStorageClient, bakeStorageService)
+    bakeStorageRoutes(bakeStorageService)
   }
 }
