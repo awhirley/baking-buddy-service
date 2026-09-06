@@ -7,6 +7,7 @@ sealed class ApiException(
   val code: ApiErrorCode,
   override val message: String,
   val details: Map<String, String> = emptyMap(),
+  override val cause: Throwable? = null,
 ) : Exception(message)
 
 class NotFoundException(
@@ -54,11 +55,13 @@ class BadRequestException(
 class UnprocessableEntityException(
   message: String,
   details: Map<String, String> = emptyMap(),
+  cause: Throwable? = null,
 ) : ApiException(
     HttpStatusCode.UnprocessableEntity,
     ApiErrorCode.UNPROCESSABLE_ENTITY,
     message,
     details,
+    cause,
   )
 
 // Data integrity issue — e.g. an ingredient/instruction missing its

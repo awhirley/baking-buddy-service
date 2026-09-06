@@ -1,12 +1,14 @@
 package com.bakingbuddy.plugins
 
 import com.bakingbuddy.api.routes.bakeRoutes
+import com.bakingbuddy.api.routes.bakeStorageRoutes
 import com.bakingbuddy.api.routes.deltaRoutes
 import com.bakingbuddy.api.routes.healthRoutes
 import com.bakingbuddy.api.routes.ingredientRoutes
 import com.bakingbuddy.api.routes.instructionRoutes
 import com.bakingbuddy.api.routes.recipeRoutes
 import com.bakingbuddy.services.BakeService
+import com.bakingbuddy.services.BakeStorageService
 import com.bakingbuddy.services.DeltaService
 import com.bakingbuddy.services.RecipeService
 import io.ktor.http.HttpMethod
@@ -19,6 +21,8 @@ fun Application.configureRouting() {
   val recipeService = RecipeService()
   val deltaService = DeltaService()
   val bakeService = BakeService()
+  val supabaseStorageClient = attributes[SupabaseStorageClientKey]
+  val bakeStorageService = BakeStorageService(supabaseStorageClient)
 
   install(CORS) {
     allowHost("localhost:5173")
@@ -41,5 +45,7 @@ fun Application.configureRouting() {
 
     deltaRoutes(deltaService)
     bakeRoutes(bakeService)
+
+    bakeStorageRoutes(bakeStorageService)
   }
 }
