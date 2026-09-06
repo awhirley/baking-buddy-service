@@ -2,8 +2,11 @@ package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.FieldError
+import com.bakingbuddy.api.errors.UnprocessableEntityException
 import com.bakingbuddy.api.errors.ValidationException
+import com.bakingbuddy.models.bakeStorage.BakeImageResponse
 import com.bakingbuddy.plugins.SupabaseStorageClientKey
+import com.bakingbuddy.services.BakeStorageService
 import com.bakingbuddy.storage.SupabaseStorageClient
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
@@ -17,7 +20,7 @@ import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
 import kotlin.uuid.Uuid
 
-fun Route.bakeStorageRoutes(storageClient: SupabaseStorageClient) {
+fun Route.bakeStorageRoutes(storageClient: SupabaseStorageClient, bakeStorageService: BakeStorageService) {
   post("/api/bakes/{bakeId}/image") {
     val bakeId = call.parameters["bakeId"]?.let { Uuid.parse(it) }
       ?: throw BadRequestException("bakeId")
@@ -40,15 +43,20 @@ fun Route.bakeStorageRoutes(storageClient: SupabaseStorageClient) {
     val path = "$bakeId/${Uuid.random()}.${extensionForContentType(content)}"
     val imageUrl = storageClient.uploadImage(path, bytes, content)
 
-    // persist imageUrl/path on the bake row via your repository
-    call.respond(HttpStatusCode.OK, mapOf("imageUrl" to imageUrl))
+    try {
+      bakeStorageService.uploadImageToBake(bakeId, path, imageUrl)
+    } catch (error: Exception) {
+      throw UnprocessableEntityException(message = "Failure while uploading image to Bake $bakeId", mapOf("error" to error.localizedMessage) )
+    }
+
+    call.respond(HttpStatusCode.OK, BakeImageResponse(path, imageUrl))
   }
 
-  delete("/api/bakes/{bakeId}") {
+//  delete("/api/bakes/{bakeId}") {
     // when deleting a bake, look up its stored image path first,
     // then: storageClient.deleteImage(path)
     // ... then delete the bake row itself
-  }
+//  }
 }
 
 fun extensionForContentType(contentType: String): String =
