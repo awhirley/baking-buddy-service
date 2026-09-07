@@ -13,4 +13,6 @@ data class CreateRecipePayload(
   val tools: List<String>?,
   val ingredients: List<CreateIngredientPayload>,
   val instructions: List<String>,
+  val bakeTime: Int?,
+  val prepTime: Int?,
 )

@@ -18,5 +18,7 @@ data class RecipeDetail(
   val openBakeId: Uuid?,
   val favorite: Boolean,
   val difficultyRating: Int?,
+  val bakeTime: Int?,
+  val prepTime: Int?,
   @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )
