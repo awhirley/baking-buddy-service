@@ -72,4 +72,10 @@ class BakeStorageService(
       )
     }
   }
+
+  suspend fun deleteImage(bakeId: Uuid, path: String) {
+    val bakeImageId = bakeStorageRepository.confirmPathBelongsToBake(bakeId, path)
+    storageClient.deleteImage(path)
+    bakeStorageRepository.deleteImage(bakeImageId)
+  }
 }

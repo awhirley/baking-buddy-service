@@ -1,11 +1,14 @@
 package com.bakingbuddy.api.routes
 
 import com.bakingbuddy.api.errors.BadRequestException
+import com.bakingbuddy.models.bakeStorage.DeleteImagePayload
 import com.bakingbuddy.services.BakeStorageService
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import kotlin.uuid.Uuid
@@ -30,11 +33,16 @@ fun Route.bakeStorageRoutes(bakeStorageService: BakeStorageService) {
     call.respond(HttpStatusCode.OK, bakeImages)
   }
 
-//  delete("/api/bakes/{bakeId}") {
-  // when deleting a bake, look up its stored image path first,
-  // then: storageClient.deleteImage(path)
-  // ... then delete the bake row itself
-//  }
+  delete("/api/bakes/{bakeId}/image") {
+    val bakeId =
+      call.parameters["bakeId"]?.let { Uuid.parse(it) }
+        ?: throw BadRequestException("bakeId")
+
+    val payload = call.receive<DeleteImagePayload>()
+
+    bakeStorageService.deleteImage(bakeId, payload.path)
+    call.respond(HttpStatusCode.OK)
+  }
 }
 
 fun extensionForContentType(contentType: String): String =
