@@ -40,6 +40,7 @@ class SupabaseStorageClient(
     val response: HttpResponse =
       httpClient.delete("${config.url}/storage/v1/object/${config.storageBucket}/$path") {
         header("Authorization", "Bearer ${config.secretKey}")
+        header("apiKey", config.secretKey)
       }
 
     if (!response.status.isSuccess()) {
@@ -47,6 +48,5 @@ class SupabaseStorageClient(
     }
   }
 
-  suspend fun getUrlForPath(path: String): String =
-    "${config.url}/storage/v1/object/public/${config.storageBucket}/$path"
+  fun getUrlForPath(path: String): String = "${config.url}/storage/v1/object/public/${config.storageBucket}/$path"
 }
