@@ -29,4 +29,10 @@ data class EditRecipePayload(
   @EncodeDefault(EncodeDefault.Mode.NEVER)
   @Serializable(with = PatchFieldSerializer::class)
   val difficultyRating: PatchField<Int> = PatchField.Absent,
+  @EncodeDefault(EncodeDefault.Mode.NEVER)
+  @Serializable(with = PatchFieldSerializer::class)
+  val bakeTime: PatchField<Int> = PatchField.Absent,
+  @EncodeDefault(EncodeDefault.Mode.NEVER)
+  @Serializable(with = PatchFieldSerializer::class)
+  val prepTime: PatchField<Int> = PatchField.Absent,
 )

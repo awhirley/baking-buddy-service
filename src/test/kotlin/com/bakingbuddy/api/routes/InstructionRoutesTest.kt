@@ -62,6 +62,8 @@ private fun sampleRecipe(id: Uuid = Uuid.random()): Recipe =
         openBakeId = null,
         favorite = false,
         difficultyRating = 3,
+        bakeTime = 30,
+        prepTime = 40,
       ),
     ingredients = emptyList(),
     instructions = emptyList(),
@@ -81,6 +83,8 @@ private fun sampleRecipeDetail(id: Uuid = Uuid.random()): RecipeDetail =
     openBakeId = null,
     favorite = false,
     difficultyRating = 3,
+    bakeTime = 30,
+    prepTime = 40,
   )
 
 private fun sampleIngredient(
@@ -122,6 +126,8 @@ private fun validCreateRecipePayload() =
     tools = null,
     ingredients = listOf(CreateIngredientPayload(name = "Flour", amount = "500g")),
     instructions = listOf("Mix and knead"),
+    bakeTime = 30,
+    prepTime = 40,
   )
 
 class InstructionRoutesTest {

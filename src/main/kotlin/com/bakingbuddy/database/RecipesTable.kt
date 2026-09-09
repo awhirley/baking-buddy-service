@@ -16,6 +16,8 @@ object RecipesTable : Table("recipes") {
   val notes = text("notes").nullable()
   val favorite = bool("favorite")
   val difficulty_rating = integer("difficulty_rating").nullable()
+  val bake_time = integer("bake_time").nullable()
+  val prep_time = integer("prep_time").nullable()
 
   override val primaryKey = PrimaryKey(id)
 }

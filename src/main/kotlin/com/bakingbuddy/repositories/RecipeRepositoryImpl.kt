@@ -73,6 +73,8 @@ class RecipeRepositoryImpl : RecipeRepository {
           openBakeId = openBakeId,
           difficultyRating = recipeRow[RecipesTable.difficulty_rating],
           favorite = recipeRow[RecipesTable.favorite],
+          bakeTime = recipeRow[RecipesTable.bake_time],
+          prepTime = recipeRow[RecipesTable.prep_time],
         )
 
       Recipe(
@@ -107,6 +109,8 @@ class RecipeRepositoryImpl : RecipeRepository {
             openBakeId = row.getOrNull(BakesTable.id),
             difficultyRating = row[RecipesTable.difficulty_rating],
             favorite = row[RecipesTable.favorite],
+            bakeTime = row[RecipesTable.bake_time],
+            prepTime = row[RecipesTable.prep_time],
           )
         }
     }
@@ -145,6 +149,8 @@ class RecipeRepositoryImpl : RecipeRepository {
           openBakeId = null,
           difficultyRating = null,
           favorite = false,
+          bakeTime = request.bakeTime,
+          prepTime = request.prepTime,
         )
 
       Recipe(
@@ -162,11 +168,10 @@ class RecipeRepositoryImpl : RecipeRepository {
     request: EditRecipePayload,
   ): Recipe =
     transaction {
-      val existing =
-        RecipesTable
-          .selectAll()
-          .where { RecipesTable.id eq id }
-          .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq id }
+        .singleOrNull() ?: throw NotFoundException("Recipe", id.toString())
 
       val openBakeId =
         BakesTable
@@ -205,6 +210,14 @@ class RecipeRepositoryImpl : RecipeRepository {
           is PatchFieldNonNull.Absent -> {}
           is PatchFieldNonNull.Present -> it[RecipesTable.favorite] = favorite.value
         }
+        when (val bakeTime = request.bakeTime) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[RecipesTable.bake_time] = bakeTime.value
+        }
+        when (val prepTime = request.prepTime) {
+          is PatchField.Absent -> {}
+          is PatchField.Present -> it[RecipesTable.prep_time] = prepTime.value
+        }
       }
 
       val updatedRow =
@@ -227,6 +240,8 @@ class RecipeRepositoryImpl : RecipeRepository {
           openBakeId = openBakeId,
           difficultyRating = updatedRow[RecipesTable.difficulty_rating],
           favorite = updatedRow[RecipesTable.favorite],
+          bakeTime = updatedRow[RecipesTable.bake_time],
+          prepTime = updatedRow[RecipesTable.prep_time],
         )
 
       Recipe(
