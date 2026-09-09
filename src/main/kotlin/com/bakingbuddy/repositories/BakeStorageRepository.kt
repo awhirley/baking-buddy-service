@@ -11,7 +11,10 @@ interface BakeStorageRepository {
 
   suspend fun getImagesForBake(bakeId: Uuid): List<BakeImage>
 
-  suspend fun confirmPathBelongsToBake(bakeId: Uuid, path: String): Uuid
+  suspend fun confirmPathBelongsToBake(
+    bakeId: Uuid,
+    path: String,
+  ): Uuid
 
   suspend fun deleteImage(bakeImageId: Uuid): Unit
 }
