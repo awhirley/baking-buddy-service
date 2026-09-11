@@ -14,9 +14,11 @@ import com.bakingbuddy.models.ingredients.IngredientHistory
 import com.bakingbuddy.models.instructions.InstructionDeltaEntry
 import com.bakingbuddy.models.instructions.InstructionHistory
 import com.bakingbuddy.repositories.helpers.getBakeRatings
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.innerJoin
 import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.Uuid
@@ -93,12 +95,18 @@ class DeltaRepositoryImpl : DeltaRepository {
     transaction {
       val bakeRows =
         BakesTable
-          .innerJoin(BakeIngredientsTable, { BakesTable.id }, { BakeIngredientsTable.bake_id })
-          .selectAll()
+          .innerJoin(
+            BakeIngredientsTable,
+            { BakesTable.id },
+            { BakeIngredientsTable.bake_id }
+          )
+          .select(BakesTable.columns)
           .where {
             (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId) or
               (BakeIngredientsTable.completed_bake_delta_id eq ingredientDeltaId)
-          }.distinctBy { it[BakesTable.id] }
+          }
+          .orderBy(BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST)
+          .distinct()
 
       val bakeIds = bakeRows.map { it[BakesTable.id] }
       val ratingsByBakeId = getBakeRatings(bakeIds)
@@ -126,7 +134,7 @@ class DeltaRepositoryImpl : DeltaRepository {
           .where {
             (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId) or
               (BakeInstructionsTable.completed_bake_delta_id eq instructionDeltaId)
-          }.distinctBy { it[BakesTable.id] }
+          }.distinct()
 
       val bakeIds = bakeRows.map { it[BakesTable.id] }
       val ratingsByBakeId = getBakeRatings(bakeIds)
