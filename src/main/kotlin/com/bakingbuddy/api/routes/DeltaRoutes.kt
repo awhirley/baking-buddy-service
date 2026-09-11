@@ -7,6 +7,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 
+@Suppress("ThrowsCount")
 fun Route.deltaRoutes(deltaService: DeltaService) {
   get(path = "/api/ingredients/history/{id}") {
     val id =
@@ -26,5 +27,25 @@ fun Route.deltaRoutes(deltaService: DeltaService) {
     val uuid = call.requireUuidParam("id")
     val instructionHistory = deltaService.getInstructionHistory(uuid)
     call.respond(instructionHistory)
+  }
+
+  get(path = "/api/ingredients/history/{id}/bakes") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
+
+    val uuid = call.requireUuidParam("id")
+    val relatedBakes = deltaService.getBakesByIngredientDeltaId(uuid)
+    call.respond(relatedBakes)
+  }
+
+  get(path = "/api/instructions/history/{id}/bakes") {
+    val id =
+      call.parameters["id"]
+        ?: throw BadRequestException("Path parameter 'id' must be provided")
+
+    val uuid = call.requireUuidParam("id")
+    val relatedBakes = deltaService.getBakesByInstructionDeltaId(uuid)
+    call.respond(relatedBakes)
   }
 }
