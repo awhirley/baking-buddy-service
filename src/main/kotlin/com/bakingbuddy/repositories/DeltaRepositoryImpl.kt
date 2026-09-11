@@ -1,15 +1,24 @@
 package com.bakingbuddy.repositories
 
 import com.bakingbuddy.api.errors.NotFoundException
+import com.bakingbuddy.database.BakeIngredientsTable
+import com.bakingbuddy.database.BakeInstructionsTable
+import com.bakingbuddy.database.BakesTable
 import com.bakingbuddy.database.IngredientDeltaTable
 import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.database.InstructionDeltaTable
 import com.bakingbuddy.database.InstructionsTable
+import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
 import com.bakingbuddy.models.ingredients.IngredientHistory
 import com.bakingbuddy.models.instructions.InstructionDeltaEntry
 import com.bakingbuddy.models.instructions.InstructionHistory
+import com.bakingbuddy.repositories.helpers.getBakeRatings
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.innerJoin
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.uuid.Uuid
@@ -80,5 +89,65 @@ class DeltaRepositoryImpl : DeltaRepository {
         bestVersion = instructionRow[InstructionsTable.best_version],
         history = history,
       )
+    }
+
+  override suspend fun getBakesByIngredientDeltaId(ingredientDeltaId: Uuid): List<BakeDetail> =
+    transaction {
+      val bakeRows =
+        BakesTable
+          .innerJoin(
+            BakeIngredientsTable,
+            { BakesTable.id },
+            { BakeIngredientsTable.bake_id },
+          ).select(BakesTable.columns)
+          .where {
+            (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId) or
+              (BakeIngredientsTable.completed_bake_delta_id eq ingredientDeltaId)
+          }.orderBy(BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST)
+          .distinct()
+
+      val bakeIds = bakeRows.map { it[BakesTable.id] }
+      val ratingsByBakeId = getBakeRatings(bakeIds)
+
+      bakeRows.map { row ->
+        BakeDetail(
+          id = row[BakesTable.id],
+          recipeId = row[BakesTable.recipe_id],
+          elevation = row[BakesTable.elevation],
+          notes = row[BakesTable.notes],
+          createdAt = row[BakesTable.created_at],
+          startDatetime = row[BakesTable.start_datetime],
+          endDatetime = row[BakesTable.end_datetime],
+          ratings = ratingsByBakeId[row[BakesTable.id]],
+        )
+      }
+    }
+
+  override suspend fun getBakesByInstructionDeltaId(instructionDeltaId: Uuid): List<BakeDetail> =
+    transaction {
+      val bakeRows =
+        BakesTable
+          .innerJoin(BakeInstructionsTable, { BakesTable.id }, { BakeInstructionsTable.bake_id })
+          .selectAll()
+          .where {
+            (BakeInstructionsTable.instruction_delta_id eq instructionDeltaId) or
+              (BakeInstructionsTable.completed_bake_delta_id eq instructionDeltaId)
+          }.distinct()
+
+      val bakeIds = bakeRows.map { it[BakesTable.id] }
+      val ratingsByBakeId = getBakeRatings(bakeIds)
+
+      bakeRows.map { row ->
+        BakeDetail(
+          id = row[BakesTable.id],
+          recipeId = row[BakesTable.recipe_id],
+          elevation = row[BakesTable.elevation],
+          notes = row[BakesTable.notes],
+          createdAt = row[BakesTable.created_at],
+          startDatetime = row[BakesTable.start_datetime],
+          endDatetime = row[BakesTable.end_datetime],
+          ratings = ratingsByBakeId[row[BakesTable.id]],
+        )
+      }
     }
 }
