@@ -98,14 +98,12 @@ class DeltaRepositoryImpl : DeltaRepository {
           .innerJoin(
             BakeIngredientsTable,
             { BakesTable.id },
-            { BakeIngredientsTable.bake_id }
-          )
-          .select(BakesTable.columns)
+            { BakeIngredientsTable.bake_id },
+          ).select(BakesTable.columns)
           .where {
             (BakeIngredientsTable.ingredient_delta_id eq ingredientDeltaId) or
               (BakeIngredientsTable.completed_bake_delta_id eq ingredientDeltaId)
-          }
-          .orderBy(BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST)
+          }.orderBy(BakesTable.end_datetime to SortOrder.DESC_NULLS_FIRST)
           .distinct()
 
       val bakeIds = bakeRows.map { it[BakesTable.id] }
