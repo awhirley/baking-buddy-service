@@ -3,6 +3,7 @@ package com.bakingbuddy.repositories
 import com.bakingbuddy.api.PatchField
 import com.bakingbuddy.api.PatchFieldNonNull
 import com.bakingbuddy.api.errors.NotFoundException
+import com.bakingbuddy.database.BakeImagesTable
 import com.bakingbuddy.database.BakeIngredientsTable
 import com.bakingbuddy.database.BakeInstructionsTable
 import com.bakingbuddy.database.BakesTable
@@ -21,6 +22,7 @@ import com.bakingbuddy.models.recipes.Recipe
 import com.bakingbuddy.models.recipes.RecipeDetail
 import com.bakingbuddy.repositories.helpers.createIngredients
 import com.bakingbuddy.repositories.helpers.createInstructions
+import com.bakingbuddy.repositories.helpers.getImagePath
 import com.bakingbuddy.repositories.helpers.getIngredientsForRecipe
 import com.bakingbuddy.repositories.helpers.getInstructionsForRecipe
 import org.jetbrains.exposed.v1.core.and
@@ -59,6 +61,15 @@ class RecipeRepositoryImpl : RecipeRepository {
           }.firstOrNull()
           ?.get(BakesTable.id)
 
+      val displayImagePath =
+        recipeRow[RecipesTable.display_image]?.let { displayImageId ->
+          BakeImagesTable
+            .select(BakeImagesTable.path)
+            .where { BakeImagesTable.id eq displayImageId }
+            .firstOrNull()
+            ?.get(BakeImagesTable.path)
+        }
+
       val details =
         RecipeDetail(
           id = recipeRow[RecipesTable.id],
@@ -75,6 +86,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           favorite = recipeRow[RecipesTable.favorite],
           bakeTime = recipeRow[RecipesTable.bake_time],
           prepTime = recipeRow[RecipesTable.prep_time],
+          displayImagePath = displayImagePath,
         )
 
       Recipe(
@@ -94,6 +106,10 @@ class RecipeRepositoryImpl : RecipeRepository {
           onColumn = { RecipesTable.id },
           otherColumn = { BakesTable.recipe_id },
           additionalConstraint = { BakesTable.end_datetime.isNull() },
+        ).leftJoin(
+          BakeImagesTable,
+          onColumn = { RecipesTable.display_image },
+          otherColumn = { BakeImagesTable.id },
         ).selectAll()
         .map { row ->
           RecipeDetail(
@@ -111,6 +127,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             favorite = row[RecipesTable.favorite],
             bakeTime = row[RecipesTable.bake_time],
             prepTime = row[RecipesTable.prep_time],
+            displayImagePath = row.getOrNull(BakeImagesTable.path),
           )
         }
     }
@@ -120,17 +137,16 @@ class RecipeRepositoryImpl : RecipeRepository {
     val createdAt = Instant.now()
 
     return transaction {
-      val recipeStatement =
-        RecipesTable.insert {
-          it[RecipesTable.id] = recipeId
-          it[RecipesTable.name] = request.name
-          it[RecipesTable.description] = request.description
-          it[RecipesTable.recipe_source] = request.recipeSource.orEmpty()
-          it[RecipesTable.recipe_source_type] = request.recipeSourceType
-          it[RecipesTable.tags] = request.tags.orEmpty()
-          it[RecipesTable.tools] = request.tools.orEmpty()
-          it[RecipesTable.created_at] = createdAt
-        }
+      RecipesTable.insert {
+        it[RecipesTable.id] = recipeId
+        it[RecipesTable.name] = request.name
+        it[RecipesTable.description] = request.description
+        it[RecipesTable.recipe_source] = request.recipeSource.orEmpty()
+        it[RecipesTable.recipe_source_type] = request.recipeSourceType
+        it[RecipesTable.tags] = request.tags.orEmpty()
+        it[RecipesTable.tools] = request.tools.orEmpty()
+        it[RecipesTable.created_at] = createdAt
+      }
 
       val ingredients = createIngredients(recipeId, request.ingredients)
       val instructions = createInstructions(recipeId, request.instructions)
@@ -151,6 +167,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           favorite = false,
           bakeTime = request.bakeTime,
           prepTime = request.prepTime,
+          displayImagePath = null,
         )
 
       Recipe(
@@ -226,6 +243,8 @@ class RecipeRepositoryImpl : RecipeRepository {
           .where { RecipesTable.id eq id }
           .single()
 
+      val imagePath = getImagePath(updatedRow[RecipesTable.display_image])
+
       val details =
         RecipeDetail(
           id = updatedRow[RecipesTable.id],
@@ -242,6 +261,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           favorite = updatedRow[RecipesTable.favorite],
           bakeTime = updatedRow[RecipesTable.bake_time],
           prepTime = updatedRow[RecipesTable.prep_time],
+          displayImagePath = imagePath,
         )
 
       Recipe(

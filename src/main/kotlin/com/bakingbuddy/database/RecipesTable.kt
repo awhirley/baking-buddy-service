@@ -1,5 +1,6 @@
 package com.bakingbuddy.database
 
+import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.TextColumnType
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -18,6 +19,12 @@ object RecipesTable : Table("recipes") {
   val difficulty_rating = integer("difficulty_rating").nullable()
   val bake_time = integer("bake_time").nullable()
   val prep_time = integer("prep_time").nullable()
+  val display_image =
+    uuid("display_image")
+      .references(
+        BakeImagesTable.id,
+        onDelete = ReferenceOption.SET_NULL,
+      ).nullable()
 
   override val primaryKey = PrimaryKey(id)
 }

@@ -17,4 +17,9 @@ interface BakeStorageRepository {
   ): Uuid
 
   suspend fun deleteImage(bakeImageId: Uuid): Unit
+
+  suspend fun setImageAsRecipeDisplayImage(
+    bakeImageId: Uuid,
+    recipeId: Uuid,
+  ): Unit
 }
