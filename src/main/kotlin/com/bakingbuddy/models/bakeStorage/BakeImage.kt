@@ -7,6 +7,7 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class BakeImage(
+  val id: Uuid,
   val bakeId: Uuid,
   val path: String,
   val imageUrl: String?,

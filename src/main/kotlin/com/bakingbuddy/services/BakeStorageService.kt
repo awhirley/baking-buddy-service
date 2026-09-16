@@ -65,6 +65,7 @@ class BakeStorageService(
     val images = bakeStorageRepository.getImagesForBake(bakeId)
     return images.map { image ->
       BakeImage(
+        id = image.id,
         bakeId = image.bakeId,
         path = image.path,
         imageUrl = storageClient.getUrlForPath(image.path),
