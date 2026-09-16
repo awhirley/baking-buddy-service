@@ -20,11 +20,13 @@ class RecipeService(
   suspend fun getRecipe(id: Uuid): Recipe? {
     val recipe = recipeRepository.findById(id) ?: return null
     return recipe.copy(
-      details = recipe.details.copy(
-        displayImage = recipe.details.displayImage?.let { storageClient.getUrlForPath(it) },
-      ),
+      details =
+        recipe.details.copy(
+          displayImage = recipe.details.displayImage?.let { storageClient.getUrlForPath(it) },
+        ),
     )
   }
+
   suspend fun listRecipes(): List<RecipeDetail> =
     recipeRepository.listAll().map { detail ->
       detail.copy(
@@ -40,9 +42,10 @@ class RecipeService(
   ): Recipe {
     val recipe = recipeRepository.editRecipe(recipeId, request)
     return recipe.copy(
-      details = recipe.details.copy(
-        displayImage = recipe.details.displayImage?.let { storageClient.getUrlForPath(it) },
-      ),
+      details =
+        recipe.details.copy(
+          displayImage = recipe.details.displayImage?.let { storageClient.getUrlForPath(it) },
+        ),
     )
   }
 
