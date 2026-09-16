@@ -86,7 +86,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           favorite = recipeRow[RecipesTable.favorite],
           bakeTime = recipeRow[RecipesTable.bake_time],
           prepTime = recipeRow[RecipesTable.prep_time],
-          displayImagePath = displayImagePath,
+          displayImage = displayImagePath,
         )
 
       Recipe(
@@ -127,7 +127,7 @@ class RecipeRepositoryImpl : RecipeRepository {
             favorite = row[RecipesTable.favorite],
             bakeTime = row[RecipesTable.bake_time],
             prepTime = row[RecipesTable.prep_time],
-            displayImagePath = row.getOrNull(BakeImagesTable.path),
+            displayImage = row.getOrNull(BakeImagesTable.path),
           )
         }
     }
@@ -167,7 +167,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           favorite = false,
           bakeTime = request.bakeTime,
           prepTime = request.prepTime,
-          displayImagePath = null,
+          displayImage = null,
         )
 
       Recipe(
@@ -261,7 +261,7 @@ class RecipeRepositoryImpl : RecipeRepository {
           favorite = updatedRow[RecipesTable.favorite],
           bakeTime = updatedRow[RecipesTable.bake_time],
           prepTime = updatedRow[RecipesTable.prep_time],
-          displayImagePath = imagePath,
+          displayImage = imagePath,
         )
 
       Recipe(

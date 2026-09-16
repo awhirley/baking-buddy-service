@@ -43,6 +43,7 @@ class BakeStorageRepositoryImpl : BakeStorageRepository {
 
       bakeImageRows.map {
         BakeImage(
+          id = it[BakeImagesTable.id],
           bakeId = it[BakeImagesTable.bake_id],
           path = it[BakeImagesTable.path],
           createdAt = it[BakeImagesTable.created_at],
@@ -86,7 +87,7 @@ class BakeStorageRepositoryImpl : BakeStorageRepository {
 
       BakeImagesTable
         .selectAll()
-        .where { RecipesTable.id eq bakeImageId }
+        .where { BakeImagesTable.id eq bakeImageId }
         .singleOrNull() ?: throw NotFoundException("BakeImage", bakeImageId.toString())
 
       RecipesTable.update({ RecipesTable.id eq recipeId }) {

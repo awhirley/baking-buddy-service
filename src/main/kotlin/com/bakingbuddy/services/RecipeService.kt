@@ -9,21 +9,42 @@ import com.bakingbuddy.models.recipes.EditRecipePayload
 import com.bakingbuddy.models.recipes.Recipe
 import com.bakingbuddy.models.recipes.RecipeDetail
 import com.bakingbuddy.repositories.RecipeRepositoryImpl
+import com.bakingbuddy.storage.SupabaseStorageClient
 import kotlin.uuid.Uuid
 
-class RecipeService {
+class RecipeService(
+  val storageClient: SupabaseStorageClient,
+) {
   private val recipeRepository = RecipeRepositoryImpl()
 
-  suspend fun getRecipe(id: Uuid): Recipe? = recipeRepository.findById(id)
-
-  suspend fun listRecipes(): List<RecipeDetail> = recipeRepository.listAll()
+  suspend fun getRecipe(id: Uuid): Recipe? {
+    val recipe = recipeRepository.findById(id) ?: return null
+    return recipe.copy(
+      details = recipe.details.copy(
+        displayImage = recipe.details.displayImage?.let { storageClient.getUrlForPath(it) },
+      ),
+    )
+  }
+  suspend fun listRecipes(): List<RecipeDetail> =
+    recipeRepository.listAll().map { detail ->
+      detail.copy(
+        displayImage = detail.displayImage?.let { storageClient.getUrlForPath(it) },
+      )
+    }
 
   suspend fun createRecipe(request: CreateRecipePayload): Recipe = recipeRepository.create(request)
 
   suspend fun editRecipe(
     recipeId: Uuid,
     request: EditRecipePayload,
-  ): Recipe = recipeRepository.editRecipe(recipeId, request)
+  ): Recipe {
+    val recipe = recipeRepository.editRecipe(recipeId, request)
+    return recipe.copy(
+      details = recipe.details.copy(
+        displayImage = recipe.details.displayImage?.let { storageClient.getUrlForPath(it) },
+      ),
+    )
+  }
 
   suspend fun updateIngredient(
     ingredientId: Uuid,

@@ -20,11 +20,11 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
-  val recipeService = RecipeService()
   val deltaService = DeltaService()
   val bakeService = BakeService()
   val filterService = FilterService()
   val supabaseStorageClient = attributes[SupabaseStorageClientKey]
+  val recipeService = RecipeService(supabaseStorageClient)
   val bakeStorageService = BakeStorageService(supabaseStorageClient)
 
   install(CORS) {

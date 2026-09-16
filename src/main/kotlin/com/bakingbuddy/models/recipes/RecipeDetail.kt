@@ -20,6 +20,6 @@ data class RecipeDetail(
   val difficultyRating: Int?,
   val bakeTime: Int?,
   val prepTime: Int?,
-  val displayImagePath: String? = null,
+  val displayImage: String? = null,
   @Serializable(with = InstantSerializer::class) val createdAt: Instant,
 )
