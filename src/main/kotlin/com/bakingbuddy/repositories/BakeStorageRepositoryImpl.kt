@@ -2,6 +2,7 @@ package com.bakingbuddy.repositories
 
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.BakeImagesTable
+import com.bakingbuddy.database.RecipesTable
 import com.bakingbuddy.models.bakeStorage.BakeImage
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
@@ -10,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
@@ -69,6 +71,27 @@ class BakeStorageRepositoryImpl : BakeStorageRepository {
   override suspend fun deleteImage(bakeImageId: Uuid) {
     transaction {
       BakeImagesTable.deleteWhere { BakeImagesTable.id eq bakeImageId }
+    }
+  }
+
+  override suspend fun setImageAsRecipeDisplayImage(
+    bakeImageId: Uuid,
+    recipeId: Uuid,
+  ) {
+    transaction {
+      RecipesTable
+        .selectAll()
+        .where { RecipesTable.id eq recipeId }
+        .singleOrNull() ?: throw NotFoundException("Recipe", recipeId.toString())
+
+      BakeImagesTable
+        .selectAll()
+        .where { RecipesTable.id eq bakeImageId }
+        .singleOrNull() ?: throw NotFoundException("BakeImage", bakeImageId.toString())
+
+      RecipesTable.update({ RecipesTable.id eq recipeId }) {
+        it[display_image] = bakeImageId
+      }
     }
   }
 }

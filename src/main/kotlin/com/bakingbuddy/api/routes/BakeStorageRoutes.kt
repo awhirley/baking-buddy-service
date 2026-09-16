@@ -10,9 +10,12 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
+import io.ktor.server.routing.patch
+import io.ktor.server.routing.path
 import io.ktor.server.routing.post
 import kotlin.uuid.Uuid
 
+@Suppress("ThrowsCount")
 fun Route.bakeStorageRoutes(bakeStorageService: BakeStorageService) {
   post("/api/bakes/{bakeId}/image") {
     val bakeId =
@@ -41,6 +44,19 @@ fun Route.bakeStorageRoutes(bakeStorageService: BakeStorageService) {
     val payload = call.receive<DeleteImagePayload>()
 
     bakeStorageService.deleteImage(bakeId, payload.path)
+    call.respond(HttpStatusCode.OK)
+  }
+
+  patch("/api/recipes/{recipeId}/image/{imageId}") {
+    val recipeId =
+      call.parameters["recipeId"]?.let { Uuid.parse(it) }
+        ?: throw BadRequestException("bakeId")
+
+    val imageId =
+      call.parameters["imageId"]?.let { Uuid.parse(it) }
+        ?: throw BadRequestException("bakeId")
+
+    bakeStorageService.setImageAsRecipeDisplayImage(imageId, recipeId)
     call.respond(HttpStatusCode.OK)
   }
 }

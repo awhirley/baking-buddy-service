@@ -10,7 +10,7 @@ class FilterRepositoryImpl : FilterRepository {
       RecipesTable
         .select(RecipesTable.tools)
         .flatMap { it[RecipesTable.tools] }
-        .toSet()
+        .toSortedSet()
     }
 
   override suspend fun listTags(): Set<String> =
@@ -18,7 +18,7 @@ class FilterRepositoryImpl : FilterRepository {
       RecipesTable
         .select(RecipesTable.tags)
         .flatMap { it[RecipesTable.tags] }
-        .toSet()
+        .toSortedSet()
     }
 
   override suspend fun listSources(): Set<String> =
@@ -26,7 +26,7 @@ class FilterRepositoryImpl : FilterRepository {
       RecipesTable
         .select(RecipesTable.recipe_source)
         .mapNotNull { it[RecipesTable.recipe_source] }
-        .toSet()
+        .toSortedSet()
     }
 
   override suspend fun listSourceTypes(): Set<String> =
@@ -34,6 +34,6 @@ class FilterRepositoryImpl : FilterRepository {
       RecipesTable
         .select(RecipesTable.recipe_source_type)
         .mapNotNull { it[RecipesTable.recipe_source_type] }
-        .toSet()
+        .toSortedSet()
     }
 }

@@ -81,4 +81,9 @@ class BakeStorageService(
     storageClient.deleteImage(path)
     bakeStorageRepository.deleteImage(bakeImageId)
   }
+
+  suspend fun setImageAsRecipeDisplayImage(
+    bakeImageId: Uuid,
+    recipeId: Uuid,
+  ) = bakeStorageRepository.setImageAsRecipeDisplayImage(bakeImageId, recipeId)
 }
