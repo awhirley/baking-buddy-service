@@ -1,7 +1,9 @@
 package com.bakingbuddy.repositories
 
+import com.bakingbuddy.models.ingredients.AddIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
 import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
+import com.bakingbuddy.models.instructions.AddInstructionPayload
 import com.bakingbuddy.models.instructions.Instruction
 import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import com.bakingbuddy.models.recipes.CreateRecipePayload
@@ -38,4 +40,12 @@ interface RecipeRepository {
   )
 
   suspend fun deleteRecipe(id: Uuid)
+
+  suspend fun addIngredient(recipeId: Uuid, request: AddIngredientPayload): Ingredient
+
+  suspend fun omitIngredient(ingredientId: Uuid)
+
+  suspend fun addInstruction(recipeId: Uuid, request: AddInstructionPayload): Instruction
+
+  suspend fun omitInstruction(instructionId: Uuid)
 }
