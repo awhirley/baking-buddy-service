@@ -12,8 +12,10 @@ import com.bakingbuddy.database.IngredientsTable
 import com.bakingbuddy.database.InstructionDeltaTable
 import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.database.RecipesTable
+import com.bakingbuddy.models.ingredients.AddIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
 import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
+import com.bakingbuddy.models.instructions.AddInstructionPayload
 import com.bakingbuddy.models.instructions.Instruction
 import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import com.bakingbuddy.models.recipes.CreateRecipePayload
@@ -25,6 +27,10 @@ import com.bakingbuddy.repositories.helpers.createInstructions
 import com.bakingbuddy.repositories.helpers.getImagePath
 import com.bakingbuddy.repositories.helpers.getIngredientsForRecipe
 import com.bakingbuddy.repositories.helpers.getInstructionsForRecipe
+import com.bakingbuddy.repositories.helpers.insertIngredient
+import com.bakingbuddy.repositories.helpers.insertInstruction
+import com.bakingbuddy.repositories.helpers.omitIngredientVersion
+import com.bakingbuddy.repositories.helpers.omitInstructionVersion
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
@@ -363,6 +369,24 @@ class RecipeRepositoryImpl : RecipeRepository {
         order = request.order,
       )
     }
+
+  override suspend fun addIngredient(
+    recipeId: Uuid,
+    request: AddIngredientPayload,
+  ): Ingredient = insertIngredient(recipeId, request)
+
+  override suspend fun omitIngredient(ingredientId: Uuid) {
+    omitIngredientVersion(ingredientId)
+  }
+
+  override suspend fun addInstruction(
+    recipeId: Uuid,
+    request: AddInstructionPayload,
+  ): Instruction = insertInstruction(recipeId, request)
+
+  override suspend fun omitInstruction(instructionId: Uuid) {
+    omitInstructionVersion(instructionId)
+  }
 
   override suspend fun updateRecipeNotes(
     recipeId: Uuid,

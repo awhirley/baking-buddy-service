@@ -1,7 +1,9 @@
 package com.bakingbuddy.services
 
+import com.bakingbuddy.models.ingredients.AddIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
 import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
+import com.bakingbuddy.models.instructions.AddInstructionPayload
 import com.bakingbuddy.models.instructions.Instruction
 import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import com.bakingbuddy.models.recipes.CreateRecipePayload
@@ -58,6 +60,20 @@ class RecipeService(
     instructionId: Uuid,
     request: UpdateInstructionPayload,
   ): Instruction = recipeRepository.updateInstruction(instructionId, request)
+
+  suspend fun addIngredient(
+    recipeId: Uuid,
+    request: AddIngredientPayload,
+  ): Ingredient = recipeRepository.addIngredient(recipeId, request)
+
+  suspend fun omitIngredient(ingredientId: Uuid) = recipeRepository.omitIngredient(ingredientId)
+
+  suspend fun addInstruction(
+    recipeId: Uuid,
+    request: AddInstructionPayload,
+  ): Instruction = recipeRepository.addInstruction(recipeId, request)
+
+  suspend fun omitInstruction(instructionId: Uuid) = recipeRepository.omitInstruction(instructionId)
 
   suspend fun updateRecipeNotes(
     recipeId: Uuid,

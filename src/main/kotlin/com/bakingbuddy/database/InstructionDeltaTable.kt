@@ -12,6 +12,7 @@ object InstructionDeltaTable : Table("instruction_delta") {
   val source_bake_id = uuid("source_bake_id").nullable()
   val created_at = timestamp("created_at")
   val order = integer("order")
+  val omitted = bool("omitted")
 
   override val primaryKey = PrimaryKey(id)
 }
