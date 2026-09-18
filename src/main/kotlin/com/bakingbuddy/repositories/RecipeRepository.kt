@@ -41,11 +41,17 @@ interface RecipeRepository {
 
   suspend fun deleteRecipe(id: Uuid)
 
-  suspend fun addIngredient(recipeId: Uuid, request: AddIngredientPayload): Ingredient
+  suspend fun addIngredient(
+    recipeId: Uuid,
+    request: AddIngredientPayload,
+  ): Ingredient
 
   suspend fun omitIngredient(ingredientId: Uuid)
 
-  suspend fun addInstruction(recipeId: Uuid, request: AddInstructionPayload): Instruction
+  suspend fun addInstruction(
+    recipeId: Uuid,
+    request: AddInstructionPayload,
+  ): Instruction
 
   suspend fun omitInstruction(instructionId: Uuid)
 }
