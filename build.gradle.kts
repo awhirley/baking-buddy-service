@@ -31,8 +31,8 @@ dependencies {
   implementation("io.ktor:ktor-client-core")
   implementation("io.ktor:ktor-client-cio")
 
-  implementation("io.ktor:ktor-server-openapi:3.5.2")
-  implementation("io.ktor:ktor-server-routing-openapi:3.5.2")
+  implementation("io.ktor:ktor-server-openapi:3.6.0")
+  implementation("io.ktor:ktor-server-routing-openapi:3.6.0")
 
   implementation("org.jetbrains.exposed:exposed-core:1.5.0")
   implementation("org.jetbrains.exposed:exposed-jdbc:1.5.0")
