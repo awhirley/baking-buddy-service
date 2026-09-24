@@ -1,6 +1,5 @@
 package com.bakingbuddy.repositories.helpers
 
-import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.IngredientDeltaTable
@@ -9,6 +8,7 @@ import com.bakingbuddy.models.ingredients.AddIngredientPayload
 import com.bakingbuddy.models.ingredients.CreateIngredientPayload
 import com.bakingbuddy.models.ingredients.Ingredient
 import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
+import com.bakingbuddy.models.ingredients.UpdateIngredientPayload
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
@@ -21,8 +21,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
-
-private const val ORDER_GAP = 10
 
 fun createIngredients(
   recipeId: Uuid,
@@ -117,7 +115,16 @@ fun insertIngredient(
   request: AddIngredientPayload,
 ): Ingredient =
   transaction {
-    val order = resolveInsertionOrder(recipeId, request.previousIngredientId, request.nextIngredientId)
+    val order =
+      resolveInsertionOrder(
+        entityLabel = "Ingredient",
+        previousParam = "previousIngredientId",
+        nextParam = "nextIngredientId",
+        previousId = request.previousIngredientId,
+        nextId = request.nextIngredientId,
+        activeOrders = { activeIngredientOrders(recipeId) },
+        rebalance = { rebalanceIngredientOrders(recipeId) },
+      )
 
     val ingredientId = Uuid.random()
     val createdAt = Instant.now()
@@ -172,46 +179,6 @@ fun omitIngredientVersion(ingredientId: Uuid): Ingredient =
     )
   }
 
-private fun resolveInsertionOrder(
-  recipeId: Uuid,
-  previousIngredientId: Uuid?,
-  nextIngredientId: Uuid?,
-): Int {
-  val orders = activeIngredientOrders(recipeId)
-  val previousOrder =
-    previousIngredientId?.let { orders[it] ?: throw NotFoundException("Ingredient", it.toString()) }
-  val nextOrder =
-    nextIngredientId?.let { orders[it] ?: throw NotFoundException("Ingredient", it.toString()) }
-
-  if (previousOrder != null && nextOrder != null && previousOrder >= nextOrder) {
-    throw BadRequestException("previousIngredientId must currently come before nextIngredientId")
-  }
-
-  computeMidpointOrder(previousOrder, nextOrder)?.let { return it }
-
-  // No integer room between the neighbors (e.g. orders 10 and 11) — renumber everything with
-  // fresh gaps of ORDER_GAP and retry once against the new values.
-  rebalanceIngredientOrders(recipeId)
-  val refreshedOrders = activeIngredientOrders(recipeId)
-  val refreshedPrevious = previousIngredientId?.let { refreshedOrders.getValue(it) }
-  val refreshedNext = nextIngredientId?.let { refreshedOrders.getValue(it) }
-
-  return computeMidpointOrder(refreshedPrevious, refreshedNext)
-    ?: error("Unable to compute an insertion order for a new ingredient on recipe $recipeId")
-}
-
-private fun computeMidpointOrder(
-  previousOrder: Int?,
-  nextOrder: Int?,
-): Int? =
-  when {
-    previousOrder == null && nextOrder == null -> ORDER_GAP
-    previousOrder == null -> nextOrder!!.takeIf { it > 1 }?.div(2)
-    nextOrder == null -> previousOrder + ORDER_GAP
-    nextOrder - previousOrder >= 2 -> previousOrder + (nextOrder - previousOrder) / 2
-    else -> null
-  }
-
 private fun activeIngredientOrders(recipeId: Uuid): Map<Uuid, Int> {
   val ingredientJoin =
     IngredientsTable.join(
@@ -228,14 +195,15 @@ private fun activeIngredientOrders(recipeId: Uuid): Map<Uuid, Int> {
     .associate { row -> row[IngredientsTable.id] to row[IngredientDeltaTable.order] }
 }
 
-private data class CurrentIngredientValues(
+data class CurrentIngredientValues(
   val amount: String,
   val name: String,
   val notes: String?,
   val order: Int,
+  val omitted: Boolean,
 )
 
-private fun currentIngredientValues(ingredientId: Uuid): CurrentIngredientValues {
+fun currentIngredientValues(ingredientId: Uuid): CurrentIngredientValues {
   val ingredientJoin =
     IngredientsTable.join(
       IngredientDeltaTable,
@@ -256,6 +224,7 @@ private fun currentIngredientValues(ingredientId: Uuid): CurrentIngredientValues
     name = row[IngredientDeltaTable.name],
     notes = row[IngredientDeltaTable.notes],
     order = row[IngredientDeltaTable.order],
+    omitted = row[IngredientDeltaTable.omitted],
   )
 }
 
@@ -280,6 +249,7 @@ private fun rebalanceIngredientOrders(recipeId: Uuid) {
           name = row[IngredientDeltaTable.name],
           notes = row[IngredientDeltaTable.notes],
           order = row[IngredientDeltaTable.order],
+          omitted = row[IngredientDeltaTable.omitted],
         ) to row[IngredientsTable.id]
       }
 
@@ -298,6 +268,46 @@ private fun rebalanceIngredientOrders(recipeId: Uuid) {
   }
 }
 
+/**
+ * Appends a new delta version for an ingredient and, unless [setAsBest] is false, points `best_version` at it.
+ * [sourceBakeId] records which bake the change came from (null for edits made directly on the recipe).
+ */
+fun writeIngredientDelta(
+  ingredientId: Uuid,
+  amount: String,
+  name: String,
+  notes: String?,
+  order: Int,
+  omitted: Boolean,
+  sourceBakeId: Uuid? = null,
+  setAsBest: Boolean = true,
+  now: Instant = Instant.now(),
+): WrittenDelta {
+  val newVersion = nextIngredientDeltaVersion(ingredientId)
+  val deltaId = Uuid.random()
+
+  IngredientDeltaTable.insert {
+    it[IngredientDeltaTable.id] = deltaId
+    it[IngredientDeltaTable.ingredient_id] = ingredientId
+    it[IngredientDeltaTable.version] = newVersion
+    it[IngredientDeltaTable.amount] = amount
+    it[IngredientDeltaTable.name] = name
+    it[IngredientDeltaTable.notes] = notes
+    it[IngredientDeltaTable.source_bake_id] = sourceBakeId
+    it[IngredientDeltaTable.created_at] = now
+    it[IngredientDeltaTable.order] = order
+    it[IngredientDeltaTable.omitted] = omitted
+  }
+
+  if (setAsBest) {
+    IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
+      it[IngredientsTable.best_version] = newVersion
+    }
+  }
+
+  return WrittenDelta(deltaId, newVersion)
+}
+
 private fun applyIngredientDelta(
   ingredientId: Uuid,
   amount: String,
@@ -312,34 +322,20 @@ private fun applyIngredientDelta(
       .where { IngredientsTable.id eq ingredientId }
       .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
 
-  val maxVersionExpr = IngredientDeltaTable.version.max()
-  val highestVersion =
-    IngredientDeltaTable
-      .select(maxVersionExpr)
-      .where { IngredientDeltaTable.ingredient_id eq ingredientId }
-      .single()[maxVersionExpr] ?: 0
-
-  val newVersion = highestVersion + 1
-
-  IngredientDeltaTable.insert {
-    it[IngredientDeltaTable.ingredient_id] = ingredientId
-    it[IngredientDeltaTable.version] = newVersion
-    it[IngredientDeltaTable.amount] = amount
-    it[IngredientDeltaTable.name] = name
-    it[IngredientDeltaTable.notes] = notes
-    it[IngredientDeltaTable.created_at] = Instant.now()
-    it[IngredientDeltaTable.order] = order
-    it[IngredientDeltaTable.omitted] = omitted
-  }
-
-  IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
-    it[IngredientsTable.best_version] = newVersion
-  }
+  val written =
+    writeIngredientDelta(
+      ingredientId = ingredientId,
+      amount = amount,
+      name = name,
+      notes = notes,
+      order = order,
+      omitted = omitted,
+    )
 
   return Ingredient(
     id = ingredientId,
     recipeId = ingredientRow[IngredientsTable.recipe_id],
-    bestVersion = newVersion,
+    bestVersion = written.version,
     notes = notes,
     createdAt = ingredientRow[IngredientsTable.created_at],
     amount = amount,
@@ -348,7 +344,45 @@ private fun applyIngredientDelta(
   )
 }
 
+/**
+ * Edits an ingredient on the recipe by writing a new delta version. The current `omitted` state is carried forward, so
+ * editing never brings a removed ingredient back.
+ */
+fun updateIngredientVersion(
+  ingredientId: Uuid,
+  request: UpdateIngredientPayload,
+): Ingredient =
+  transaction {
+    val current = currentIngredientValues(ingredientId)
+
+    applyIngredientDelta(
+      ingredientId = ingredientId,
+      amount = request.amount,
+      name = request.name,
+      notes = request.notes,
+      order = request.order,
+      omitted = current.omitted,
+    )
+  }
+
+fun nextIngredientDeltaVersion(ingredientId: Uuid): Int {
+  val maxVersionExpr = IngredientDeltaTable.version.max()
+  val highestVersion =
+    IngredientDeltaTable
+      .select(maxVersionExpr)
+      .where { IngredientDeltaTable.ingredient_id eq ingredientId }
+      .single()[maxVersionExpr] ?: 0
+
+  return highestVersion + 1
+}
+
 data class BestIngredientDelta(
   val bakeIngredientId: Uuid,
   val bestDelta: IngredientDeltaEntry,
+)
+
+/** Identifies a delta version that was just written (shared by ingredient and instruction deltas). */
+data class WrittenDelta(
+  val deltaId: Uuid,
+  val version: Int,
 )

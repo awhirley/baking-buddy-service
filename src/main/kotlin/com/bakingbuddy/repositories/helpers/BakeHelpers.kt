@@ -27,7 +27,6 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNull
-import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -35,51 +34,65 @@ import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
 
-fun getBakeInstructionPayloadForRow(row: ResultRow): BakeInstructionPayload =
-  BakeInstructionPayload(
+// Steps added during a bake have no originating delta, so the delta tables are left-joined and their columns are
+// only read when the bake row points at a delta.
+fun getBakeInstructionPayloadForRow(row: ResultRow): BakeInstructionPayload {
+  val initialDeltaId = row[BakeInstructionsTable.instruction_delta_id]
+
+  return BakeInstructionPayload(
     bakeInstructionId = row[BakeInstructionsTable.id],
     initialDeltaValues =
-      InstructionDeltaEntry(
-        id = row[BakeInstructionsTable.instruction_delta_id],
-        instructionId = row[InstructionDeltaTable.instruction_id],
-        version = row[InstructionDeltaTable.version],
-        description = row[InstructionDeltaTable.description],
-        notes = row[InstructionDeltaTable.notes],
-        order = row[InstructionDeltaTable.order],
-        createdAt = row[InstructionDeltaTable.created_at],
-      ),
+      initialDeltaId?.let {
+        InstructionDeltaEntry(
+          id = it,
+          instructionId = row[InstructionDeltaTable.instruction_id],
+          version = row[InstructionDeltaTable.version],
+          description = row[InstructionDeltaTable.description],
+          notes = row[InstructionDeltaTable.notes],
+          order = row[InstructionDeltaTable.order],
+          createdAt = row[InstructionDeltaTable.created_at],
+        )
+      },
     updatedDeltaValues =
       BakeInstruction(
         updatedDescription = row[BakeInstructionsTable.description],
         updatedNotes = row[BakeInstructionsTable.notes],
         updatedOrder = row[BakeInstructionsTable.order],
+        updatedOmitted = row[BakeInstructionsTable.omitted],
       ),
     completedBakeDeltaId = row[BakeInstructionsTable.completed_bake_delta_id],
   )
+}
 
-fun getBakeIngredientPayloadForRow(row: ResultRow): BakeIngredientPayload =
-  BakeIngredientPayload(
+fun getBakeIngredientPayloadForRow(row: ResultRow): BakeIngredientPayload {
+  val initialDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
+
+  return BakeIngredientPayload(
     bakeIngredientId = row[BakeIngredientsTable.id],
     initialDeltaValues =
-      IngredientDeltaEntry(
-        ingredientId = row[IngredientDeltaTable.ingredient_id],
-        id = row[BakeIngredientsTable.ingredient_delta_id],
-        version = row[IngredientDeltaTable.version],
-        amount = row[IngredientDeltaTable.amount],
-        name = row[IngredientDeltaTable.name],
-        notes = row[IngredientDeltaTable.notes],
-        createdAt = row[IngredientDeltaTable.created_at],
-        order = row[BakeIngredientsTable.order],
-      ),
+      initialDeltaId?.let {
+        IngredientDeltaEntry(
+          ingredientId = row[IngredientDeltaTable.ingredient_id],
+          id = it,
+          version = row[IngredientDeltaTable.version],
+          amount = row[IngredientDeltaTable.amount],
+          name = row[IngredientDeltaTable.name],
+          notes = row[IngredientDeltaTable.notes],
+          createdAt = row[IngredientDeltaTable.created_at],
+          order = row[IngredientDeltaTable.order],
+        )
+      },
     updatedDeltaValues =
       BakeIngredient(
         updatedAmount = row[BakeIngredientsTable.amount],
         updatedName = row[BakeIngredientsTable.name],
         updatedNotes = row[BakeIngredientsTable.notes],
         updatedOrder = row[BakeIngredientsTable.order],
+        updatedOmitted = row[BakeIngredientsTable.omitted],
       ),
     completedBakeDeltaId = row[BakeIngredientsTable.completed_bake_delta_id],
   )
+}
 
 fun getBakeRatings(bakeIds: List<Uuid>): Map<Uuid, BakeRating> {
   val ratingsByBakeId =
@@ -179,7 +192,7 @@ fun upsertBakeRatings(
 }
 
 fun getBestIngredientDeltas(recipeId: Uuid): List<BestIngredientDelta> {
-  val ingredientDeltas =
+  val rows =
     IngredientsTable
       .join(
         IngredientDeltaTable,
@@ -190,22 +203,7 @@ fun getBestIngredientDeltas(recipeId: Uuid): List<BestIngredientDelta> {
       ).selectAll()
       .where { IngredientsTable.recipe_id eq recipeId }
       .orderBy(IngredientDeltaTable.order to SortOrder.ASC)
-      .map { row ->
-        BestIngredientDelta(
-          bakeIngredientId = Uuid.random(),
-          bestDelta =
-            IngredientDeltaEntry(
-              id = row[IngredientDeltaTable.id],
-              ingredientId = row[IngredientDeltaTable.ingredient_id],
-              version = row[IngredientDeltaTable.version],
-              amount = row[IngredientDeltaTable.amount],
-              name = row[IngredientDeltaTable.name],
-              notes = row[IngredientDeltaTable.notes],
-              order = row[IngredientDeltaTable.order],
-              createdAt = row[IngredientDeltaTable.created_at],
-            ),
-        )
-      }
+      .toList()
 
   val ingredientConceptCount =
     IngredientsTable
@@ -213,17 +211,35 @@ fun getBestIngredientDeltas(recipeId: Uuid): List<BestIngredientDelta> {
       .where { IngredientsTable.recipe_id eq recipeId }
       .count()
 
-  if (ingredientDeltas.size.toLong() != ingredientConceptCount) {
+  if (rows.size.toLong() != ingredientConceptCount) {
     throw DataIntegrityException(
       "Missing ingredient_delta row for best_version on one or more ingredients of recipe $recipeId",
     )
   }
 
-  return ingredientDeltas
+  // Omitted ingredients still have a best_version delta, but a new bake must not start with them.
+  return rows
+    .filterNot { it[IngredientDeltaTable.omitted] }
+    .map { row ->
+      BestIngredientDelta(
+        bakeIngredientId = Uuid.random(),
+        bestDelta =
+          IngredientDeltaEntry(
+            id = row[IngredientDeltaTable.id],
+            ingredientId = row[IngredientDeltaTable.ingredient_id],
+            version = row[IngredientDeltaTable.version],
+            amount = row[IngredientDeltaTable.amount],
+            name = row[IngredientDeltaTable.name],
+            notes = row[IngredientDeltaTable.notes],
+            order = row[IngredientDeltaTable.order],
+            createdAt = row[IngredientDeltaTable.created_at],
+          ),
+      )
+    }
 }
 
 fun getBestInstructionDeltas(recipeId: Uuid): List<BestInstructionDelta> {
-  val instructionDeltas =
+  val rows =
     InstructionsTable
       .join(
         InstructionDeltaTable,
@@ -234,21 +250,7 @@ fun getBestInstructionDeltas(recipeId: Uuid): List<BestInstructionDelta> {
       ).selectAll()
       .where { InstructionsTable.recipe_id eq recipeId }
       .orderBy(InstructionDeltaTable.order to SortOrder.ASC)
-      .map { row ->
-        BestInstructionDelta(
-          bakeInstructionId = Uuid.random(),
-          bestDelta =
-            InstructionDeltaEntry(
-              id = row[InstructionDeltaTable.id],
-              instructionId = row[InstructionDeltaTable.instruction_id],
-              version = row[InstructionDeltaTable.version],
-              description = row[InstructionDeltaTable.description],
-              notes = row[InstructionDeltaTable.notes],
-              order = row[InstructionDeltaTable.order],
-              createdAt = row[InstructionDeltaTable.created_at],
-            ),
-        )
-      }
+      .toList()
 
   val instructionConceptCount =
     InstructionsTable
@@ -256,136 +258,348 @@ fun getBestInstructionDeltas(recipeId: Uuid): List<BestInstructionDelta> {
       .where { InstructionsTable.recipe_id eq recipeId }
       .count()
 
-  if (instructionDeltas.size.toLong() != instructionConceptCount) {
+  if (rows.size.toLong() != instructionConceptCount) {
     throw DataIntegrityException(
       "Missing instruction_delta row for best_version on one or more instructions of recipe $recipeId",
     )
   }
 
-  return instructionDeltas
+  // Omitted instructions still have a best_version delta, but a new bake must not start with them.
+  return rows
+    .filterNot { it[InstructionDeltaTable.omitted] }
+    .map { row ->
+      BestInstructionDelta(
+        bakeInstructionId = Uuid.random(),
+        bestDelta =
+          InstructionDeltaEntry(
+            id = row[InstructionDeltaTable.id],
+            instructionId = row[InstructionDeltaTable.instruction_id],
+            version = row[InstructionDeltaTable.version],
+            description = row[InstructionDeltaTable.description],
+            notes = row[InstructionDeltaTable.notes],
+            order = row[InstructionDeltaTable.order],
+            createdAt = row[InstructionDeltaTable.created_at],
+          ),
+      )
+    }
 }
 
-fun completeBakeIngredient(
-  row: ResultRow,
+/**
+ * Carries a completed bake's ingredients over to the recipe.
+ *
+ * Every change is recorded as a new delta version tagged with the bake (`source_bake_id`) and linked from the bake
+ * row (`completed_bake_delta_id`). When [setAsBest] is true the recipe is made to match the bake exactly, whatever
+ * happened to the recipe while the bake was open: changed rows are compared against the recipe's *current* best
+ * delta rather than the one the bake started from, and recipe ingredients the bake doesn't have are omitted.
+ * When it is false, only the bake's own changes are recorded and `best_version` is left alone.
+ */
+fun completeBakeIngredients(
+  bakeId: Uuid,
+  recipeId: Uuid,
   setAsBest: Boolean,
   now: Instant,
 ) {
-  val amount = row[BakeIngredientsTable.amount]
-  val name = row[BakeIngredientsTable.name]
-  val notes = row[BakeIngredientsTable.notes]
-  val order = row[BakeIngredientsTable.order]
+  val rows =
+    BakeIngredientsTable
+      .selectAll()
+      .where { BakeIngredientsTable.bake_id eq bakeId }
+      .toList()
 
-  val currentDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
-  val currentDelta =
+  if (setAsBest) {
+    omitIngredientsMissingFromBake(recipeId, bakeId, rows, now)
+  }
+
+  rows.forEach { row ->
+    val initialDeltaId = row[BakeIngredientsTable.ingredient_delta_id]
+    if (initialDeltaId == null) {
+      recordBakeAddedIngredient(row, recipeId, setAsBest, now)
+    } else {
+      recordBakeIngredientChanges(row, initialDeltaId, setAsBest, now)
+    }
+  }
+}
+
+fun completeBakeInstructions(
+  bakeId: Uuid,
+  recipeId: Uuid,
+  setAsBest: Boolean,
+  now: Instant,
+) {
+  val rows =
+    BakeInstructionsTable
+      .selectAll()
+      .where { BakeInstructionsTable.bake_id eq bakeId }
+      .toList()
+
+  if (setAsBest) {
+    omitInstructionsMissingFromBake(recipeId, bakeId, rows, now)
+  }
+
+  rows.forEach { row ->
+    val initialDeltaId = row[BakeInstructionsTable.instruction_delta_id]
+    if (initialDeltaId == null) {
+      recordBakeAddedInstruction(row, recipeId, setAsBest, now)
+    } else {
+      recordBakeInstructionChanges(row, initialDeltaId, setAsBest, now)
+    }
+  }
+}
+
+// Ingredients added to the recipe while the bake was open don't exist in the bake, so making the recipe match the
+// bake means omitting them. (Versioned, so nothing is lost.)
+private fun omitIngredientsMissingFromBake(
+  recipeId: Uuid,
+  bakeId: Uuid,
+  bakeRows: List<ResultRow>,
+  now: Instant,
+) {
+  val initialDeltaIds = bakeRows.mapNotNull { it[BakeIngredientsTable.ingredient_delta_id] }
+  val representedIngredientIds: Set<Uuid> =
+    if (initialDeltaIds.isEmpty()) {
+      emptySet()
+    } else {
+      IngredientDeltaTable
+        .select(IngredientDeltaTable.ingredient_id)
+        .where { IngredientDeltaTable.id inList initialDeltaIds }
+        .map { it[IngredientDeltaTable.ingredient_id] }
+        .toSet()
+    }
+
+  getIngredientsForRecipe(recipeId)
+    .filterNot { it.id in representedIngredientIds }
+    .forEach { ingredient ->
+      writeIngredientDelta(
+        ingredientId = ingredient.id,
+        amount = ingredient.amount,
+        name = ingredient.name,
+        notes = ingredient.notes,
+        order = ingredient.order,
+        omitted = true,
+        sourceBakeId = bakeId,
+        now = now,
+      )
+    }
+}
+
+private fun omitInstructionsMissingFromBake(
+  recipeId: Uuid,
+  bakeId: Uuid,
+  bakeRows: List<ResultRow>,
+  now: Instant,
+) {
+  val initialDeltaIds = bakeRows.mapNotNull { it[BakeInstructionsTable.instruction_delta_id] }
+  val representedInstructionIds: Set<Uuid> =
+    if (initialDeltaIds.isEmpty()) {
+      emptySet()
+    } else {
+      InstructionDeltaTable
+        .select(InstructionDeltaTable.instruction_id)
+        .where { InstructionDeltaTable.id inList initialDeltaIds }
+        .map { it[InstructionDeltaTable.instruction_id] }
+        .toSet()
+    }
+
+  getInstructionsForRecipe(recipeId)
+    .filterNot { it.id in representedInstructionIds }
+    .forEach { instruction ->
+      writeInstructionDelta(
+        instructionId = instruction.id,
+        description = instruction.description,
+        notes = instruction.notes,
+        order = instruction.order,
+        omitted = true,
+        sourceBakeId = bakeId,
+        now = now,
+      )
+    }
+}
+
+// A bake ingredient that started from a recipe ingredient: edits, reorders, removals and reversions all show up as
+// a difference between the bake row and the baseline.
+private fun recordBakeIngredientChanges(
+  row: ResultRow,
+  initialDeltaId: Uuid,
+  setAsBest: Boolean,
+  now: Instant,
+) {
+  val initialDelta =
     IngredientDeltaTable
       .selectAll()
-      .where { IngredientDeltaTable.id eq currentDeltaId }
-      .singleOrNull() ?: throw NotFoundException("IngredientDelta", currentDeltaId.toString())
-  val ingredientId = currentDelta[IngredientDeltaTable.ingredient_id]
+      .where { IngredientDeltaTable.id eq initialDeltaId }
+      .singleOrNull() ?: throw NotFoundException("IngredientDelta", initialDeltaId.toString())
+  val ingredientId = initialDelta[IngredientDeltaTable.ingredient_id]
 
-  if (
-    currentDelta[IngredientDeltaTable.amount] == amount &&
-    currentDelta[IngredientDeltaTable.name] == name &&
-    currentDelta[IngredientDeltaTable.notes] == notes
-  ) {
+  val bakeValues =
+    CurrentIngredientValues(
+      amount = row[BakeIngredientsTable.amount],
+      name = row[BakeIngredientsTable.name],
+      notes = row[BakeIngredientsTable.notes],
+      order = row[BakeIngredientsTable.order],
+      omitted = row[BakeIngredientsTable.omitted],
+    )
+
+  val baseline =
+    if (setAsBest) {
+      currentIngredientValues(ingredientId)
+    } else {
+      CurrentIngredientValues(
+        amount = initialDelta[IngredientDeltaTable.amount],
+        name = initialDelta[IngredientDeltaTable.name],
+        notes = initialDelta[IngredientDeltaTable.notes],
+        order = initialDelta[IngredientDeltaTable.order],
+        omitted = initialDelta[IngredientDeltaTable.omitted],
+      )
+    }
+
+  // Nothing to record if they match, or if the step is omitted on both sides (nothing visible differs).
+  if (baseline == bakeValues || (baseline.omitted && bakeValues.omitted)) {
     return
   }
 
-  val newVersion = nextIngredientDeltaVersion(ingredientId)
-  val newDeltaId = Uuid.random()
+  val written =
+    writeIngredientDelta(
+      ingredientId = ingredientId,
+      amount = bakeValues.amount,
+      name = bakeValues.name,
+      notes = bakeValues.notes,
+      order = bakeValues.order,
+      omitted = bakeValues.omitted,
+      sourceBakeId = row[BakeIngredientsTable.bake_id],
+      setAsBest = setAsBest,
+      now = now,
+    )
+
+  BakeIngredientsTable.update({ BakeIngredientsTable.id eq row[BakeIngredientsTable.id] }) {
+    it[BakeIngredientsTable.completed_bake_delta_id] = written.deltaId
+  }
+}
+
+private fun recordBakeInstructionChanges(
+  row: ResultRow,
+  initialDeltaId: Uuid,
+  setAsBest: Boolean,
+  now: Instant,
+) {
+  val initialDelta =
+    InstructionDeltaTable
+      .selectAll()
+      .where { InstructionDeltaTable.id eq initialDeltaId }
+      .singleOrNull() ?: throw NotFoundException("InstructionDelta", initialDeltaId.toString())
+  val instructionId = initialDelta[InstructionDeltaTable.instruction_id]
+
+  val bakeValues =
+    CurrentInstructionValues(
+      description = row[BakeInstructionsTable.description],
+      notes = row[BakeInstructionsTable.notes],
+      order = row[BakeInstructionsTable.order],
+      omitted = row[BakeInstructionsTable.omitted],
+    )
+
+  val baseline =
+    if (setAsBest) {
+      currentInstructionValues(instructionId)
+    } else {
+      CurrentInstructionValues(
+        description = initialDelta[InstructionDeltaTable.description],
+        notes = initialDelta[InstructionDeltaTable.notes],
+        order = initialDelta[InstructionDeltaTable.order],
+        omitted = initialDelta[InstructionDeltaTable.omitted],
+      )
+    }
+
+  if (baseline == bakeValues || (baseline.omitted && bakeValues.omitted)) {
+    return
+  }
+
+  val written =
+    writeInstructionDelta(
+      instructionId = instructionId,
+      description = bakeValues.description,
+      notes = bakeValues.notes,
+      order = bakeValues.order,
+      omitted = bakeValues.omitted,
+      sourceBakeId = row[BakeInstructionsTable.bake_id],
+      setAsBest = setAsBest,
+      now = now,
+    )
+
+  BakeInstructionsTable.update({ BakeInstructionsTable.id eq row[BakeInstructionsTable.id] }) {
+    it[BakeInstructionsTable.completed_bake_delta_id] = written.deltaId
+  }
+}
+
+// A bake ingredient added during the bake becomes a new recipe ingredient. If the bake isn't marked best, version 1
+// is written omitted: the ingredient and its source bake are on record, but the recipe itself doesn't change.
+private fun recordBakeAddedIngredient(
+  row: ResultRow,
+  recipeId: Uuid,
+  setAsBest: Boolean,
+  now: Instant,
+) {
+  // Added and then removed within the same bake: nothing worth putting on the recipe.
+  if (row[BakeIngredientsTable.omitted]) return
+
+  val ingredientId = Uuid.random()
+  val deltaId = Uuid.random()
+
+  IngredientsTable.insert {
+    it[IngredientsTable.id] = ingredientId
+    it[IngredientsTable.recipe_id] = recipeId
+    it[IngredientsTable.best_version] = 1
+    it[IngredientsTable.created_at] = now
+  }
 
   IngredientDeltaTable.insert {
-    it[IngredientDeltaTable.id] = newDeltaId
+    it[IngredientDeltaTable.id] = deltaId
     it[IngredientDeltaTable.ingredient_id] = ingredientId
-    it[IngredientDeltaTable.version] = newVersion
-    it[IngredientDeltaTable.amount] = amount
-    it[IngredientDeltaTable.name] = name
-    it[IngredientDeltaTable.notes] = notes
-    it[IngredientDeltaTable.order] = order
-    it[IngredientDeltaTable.created_at] = now
+    it[IngredientDeltaTable.version] = 1
+    it[IngredientDeltaTable.amount] = row[BakeIngredientsTable.amount]
+    it[IngredientDeltaTable.name] = row[BakeIngredientsTable.name]
+    it[IngredientDeltaTable.notes] = row[BakeIngredientsTable.notes]
     it[IngredientDeltaTable.source_bake_id] = row[BakeIngredientsTable.bake_id]
+    it[IngredientDeltaTable.created_at] = now
+    it[IngredientDeltaTable.order] = row[BakeIngredientsTable.order]
+    it[IngredientDeltaTable.omitted] = !setAsBest
   }
 
   BakeIngredientsTable.update({ BakeIngredientsTable.id eq row[BakeIngredientsTable.id] }) {
-    it[BakeIngredientsTable.completed_bake_delta_id] = newDeltaId
-  }
-
-  if (setAsBest) {
-    IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
-      it[IngredientsTable.best_version] = newVersion
-    }
+    it[BakeIngredientsTable.completed_bake_delta_id] = deltaId
   }
 }
 
-fun completeBakeInstruction(
+private fun recordBakeAddedInstruction(
   row: ResultRow,
+  recipeId: Uuid,
   setAsBest: Boolean,
   now: Instant,
 ) {
-  val description = row[BakeInstructionsTable.description]
-  val notes = row[BakeInstructionsTable.notes]
-  val order = row[BakeInstructionsTable.order]
+  if (row[BakeInstructionsTable.omitted]) return
 
-  val currentDeltaId = row[BakeInstructionsTable.instruction_delta_id]
-  val currentDelta =
-    InstructionDeltaTable
-      .selectAll()
-      .where { InstructionDeltaTable.id eq currentDeltaId }
-      .singleOrNull() ?: throw NotFoundException("InstructionDelta", currentDeltaId.toString())
-  val instructionId = currentDelta[InstructionDeltaTable.instruction_id]
+  val instructionId = Uuid.random()
+  val deltaId = Uuid.random()
 
-  if (
-    currentDelta[InstructionDeltaTable.description] == description &&
-    currentDelta[InstructionDeltaTable.notes] == notes
-  ) {
-    return
+  InstructionsTable.insert {
+    it[InstructionsTable.id] = instructionId
+    it[InstructionsTable.recipe_id] = recipeId
+    it[InstructionsTable.best_version] = 1
+    it[InstructionsTable.created_at] = now
   }
 
-  val newVersion = nextInstructionDeltaVersion(instructionId)
-  val newDeltaId = Uuid.random()
-
   InstructionDeltaTable.insert {
-    it[InstructionDeltaTable.id] = newDeltaId
+    it[InstructionDeltaTable.id] = deltaId
     it[InstructionDeltaTable.instruction_id] = instructionId
-    it[InstructionDeltaTable.version] = newVersion
-    it[InstructionDeltaTable.description] = description
-    it[InstructionDeltaTable.notes] = notes
-    it[InstructionDeltaTable.order] = order
-    it[InstructionDeltaTable.created_at] = now
+    it[InstructionDeltaTable.version] = 1
+    it[InstructionDeltaTable.description] = row[BakeInstructionsTable.description]
+    it[InstructionDeltaTable.notes] = row[BakeInstructionsTable.notes]
     it[InstructionDeltaTable.source_bake_id] = row[BakeInstructionsTable.bake_id]
+    it[InstructionDeltaTable.created_at] = now
+    it[InstructionDeltaTable.order] = row[BakeInstructionsTable.order]
+    it[InstructionDeltaTable.omitted] = !setAsBest
   }
 
   BakeInstructionsTable.update({ BakeInstructionsTable.id eq row[BakeInstructionsTable.id] }) {
-    it[BakeInstructionsTable.completed_bake_delta_id] = newDeltaId
+    it[BakeInstructionsTable.completed_bake_delta_id] = deltaId
   }
-
-  if (setAsBest) {
-    InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
-      it[InstructionsTable.best_version] = newVersion
-    }
-  }
-}
-
-fun nextIngredientDeltaVersion(ingredientId: Uuid): Int {
-  val maxVersionExpr = IngredientDeltaTable.version.max()
-  val highestVersion =
-    IngredientDeltaTable
-      .select(maxVersionExpr)
-      .where { IngredientDeltaTable.ingredient_id eq ingredientId }
-      .single()[maxVersionExpr] ?: 0
-
-  return highestVersion + 1
-}
-
-fun nextInstructionDeltaVersion(instructionId: Uuid): Int {
-  val maxVersionExpr = InstructionDeltaTable.version.max()
-  val highestVersion =
-    InstructionDeltaTable
-      .select(maxVersionExpr)
-      .where { InstructionDeltaTable.instruction_id eq instructionId }
-      .single()[maxVersionExpr] ?: 0
-
-  return highestVersion + 1
 }
 
 fun assertNoOpenBake(recipeId: Uuid) {
