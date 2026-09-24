@@ -31,12 +31,13 @@ import com.bakingbuddy.repositories.helpers.insertIngredient
 import com.bakingbuddy.repositories.helpers.insertInstruction
 import com.bakingbuddy.repositories.helpers.omitIngredientVersion
 import com.bakingbuddy.repositories.helpers.omitInstructionVersion
+import com.bakingbuddy.repositories.helpers.updateIngredientVersion
+import com.bakingbuddy.repositories.helpers.updateInstructionVersion
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.leftJoin
-import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -281,94 +282,12 @@ class RecipeRepositoryImpl : RecipeRepository {
   override suspend fun updateIngredient(
     ingredientId: Uuid,
     request: UpdateIngredientPayload,
-  ): Ingredient =
-    transaction {
-      val ingredientRow =
-        IngredientsTable
-          .selectAll()
-          .where { IngredientsTable.id eq ingredientId }
-          .singleOrNull() ?: throw NotFoundException("Ingredient", ingredientId.toString())
-
-      val maxVersionExpr = IngredientDeltaTable.version.max()
-      val highestVersion =
-        IngredientDeltaTable
-          .select(maxVersionExpr)
-          .where { IngredientDeltaTable.ingredient_id eq ingredientId }
-          .single()[maxVersionExpr] ?: 0
-
-      val newVersion = highestVersion + 1
-      val createdAt = Instant.now()
-
-      IngredientDeltaTable.insert {
-        it[IngredientDeltaTable.ingredient_id] = ingredientId
-        it[IngredientDeltaTable.version] = newVersion
-        it[IngredientDeltaTable.amount] = request.amount
-        it[IngredientDeltaTable.name] = request.name
-        it[IngredientDeltaTable.notes] = request.notes
-        it[IngredientDeltaTable.created_at] = createdAt
-        it[IngredientDeltaTable.order] = request.order
-      }
-
-      IngredientsTable.update({ IngredientsTable.id eq ingredientId }) {
-        it[IngredientsTable.best_version] = newVersion
-      }
-
-      Ingredient(
-        id = ingredientId,
-        recipeId = ingredientRow[IngredientsTable.recipe_id],
-        bestVersion = newVersion,
-        notes = request.notes,
-        createdAt = ingredientRow[IngredientsTable.created_at],
-        amount = request.amount,
-        name = request.name,
-        order = request.order,
-      )
-    }
+  ): Ingredient = updateIngredientVersion(ingredientId, request)
 
   override suspend fun updateInstruction(
     instructionId: Uuid,
     request: UpdateInstructionPayload,
-  ): Instruction =
-    transaction {
-      val instructionRow =
-        InstructionsTable
-          .selectAll()
-          .where { InstructionsTable.id eq instructionId }
-          .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
-
-      val maxVersionExpr = InstructionDeltaTable.version.max()
-      val highestVersion =
-        InstructionDeltaTable
-          .select(maxVersionExpr)
-          .where { InstructionDeltaTable.instruction_id eq instructionId }
-          .single()[maxVersionExpr] ?: 0
-
-      val newVersion = highestVersion + 1
-      val createdAt = Instant.now()
-
-      InstructionDeltaTable.insert {
-        it[InstructionDeltaTable.instruction_id] = instructionId
-        it[InstructionDeltaTable.version] = newVersion
-        it[InstructionDeltaTable.description] = request.description
-        it[InstructionDeltaTable.notes] = request.notes
-        it[InstructionDeltaTable.created_at] = createdAt
-        it[InstructionDeltaTable.order] = request.order
-      }
-
-      InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
-        it[InstructionsTable.best_version] = newVersion
-      }
-
-      Instruction(
-        id = instructionId,
-        recipeId = instructionRow[InstructionsTable.recipe_id],
-        bestVersion = newVersion,
-        notes = request.notes,
-        createdAt = instructionRow[InstructionsTable.created_at],
-        description = request.description,
-        order = request.order,
-      )
-    }
+  ): Instruction = updateInstructionVersion(instructionId, request)
 
   override suspend fun addIngredient(
     recipeId: Uuid,

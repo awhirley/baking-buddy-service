@@ -9,6 +9,8 @@ import com.bakingbuddy.database.BakesTable
 import com.bakingbuddy.database.IngredientDeltaTable
 import com.bakingbuddy.database.InstructionDeltaTable
 import com.bakingbuddy.database.RecipesTable
+import com.bakingbuddy.models.bakes.AddBakeIngredientPayload
+import com.bakingbuddy.models.bakes.AddBakeInstructionPayload
 import com.bakingbuddy.models.bakes.Bake
 import com.bakingbuddy.models.bakes.BakeDetail
 import com.bakingbuddy.models.bakes.BakeIngredient
@@ -22,13 +24,17 @@ import com.bakingbuddy.models.bakes.UpdateBakePayload
 import com.bakingbuddy.models.ingredients.IngredientDeltaEntry
 import com.bakingbuddy.models.instructions.InstructionDeltaEntry
 import com.bakingbuddy.repositories.helpers.assertNoOpenBake
-import com.bakingbuddy.repositories.helpers.completeBakeIngredient
-import com.bakingbuddy.repositories.helpers.completeBakeInstruction
+import com.bakingbuddy.repositories.helpers.completeBakeIngredients
+import com.bakingbuddy.repositories.helpers.completeBakeInstructions
 import com.bakingbuddy.repositories.helpers.getBakeIngredientPayloadForRow
 import com.bakingbuddy.repositories.helpers.getBakeInstructionPayloadForRow
 import com.bakingbuddy.repositories.helpers.getBakeRatings
 import com.bakingbuddy.repositories.helpers.getBestIngredientDeltas
 import com.bakingbuddy.repositories.helpers.getBestInstructionDeltas
+import com.bakingbuddy.repositories.helpers.insertBakeIngredient
+import com.bakingbuddy.repositories.helpers.insertBakeInstruction
+import com.bakingbuddy.repositories.helpers.markBakeIngredientOmitted
+import com.bakingbuddy.repositories.helpers.markBakeInstructionOmitted
 import com.bakingbuddy.repositories.helpers.upsertBakeRatings
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -76,6 +82,7 @@ class BakeRepositoryImpl : BakeRepository {
           it[BakeIngredientsTable.name] = delta.bestDelta.name
           it[BakeIngredientsTable.notes] = delta.bestDelta.notes
           it[BakeIngredientsTable.order] = delta.bestDelta.order
+          it[BakeIngredientsTable.omitted] = false
         }
       }
 
@@ -87,6 +94,7 @@ class BakeRepositoryImpl : BakeRepository {
           it[BakeInstructionsTable.description] = delta.bestDelta.description
           it[BakeInstructionsTable.notes] = delta.bestDelta.notes
           it[BakeInstructionsTable.order] = delta.bestDelta.order
+          it[BakeInstructionsTable.omitted] = false
         }
       }
 
@@ -123,6 +131,7 @@ class BakeRepositoryImpl : BakeRepository {
                   updatedName = delta.bestDelta.name,
                   updatedNotes = delta.bestDelta.notes,
                   updatedOrder = delta.bestDelta.order,
+                  updatedOmitted = false,
                 ),
               completedBakeDeltaId = null,
             )
@@ -146,6 +155,7 @@ class BakeRepositoryImpl : BakeRepository {
                   updatedDescription = delta.bestDelta.description,
                   updatedNotes = delta.bestDelta.notes,
                   updatedOrder = delta.bestDelta.order,
+                  updatedOmitted = false,
                 ),
               completedBakeDeltaId = null,
             )
@@ -177,7 +187,7 @@ class BakeRepositoryImpl : BakeRepository {
         BakeIngredientsTable
           .join(
             IngredientDeltaTable,
-            JoinType.INNER,
+            JoinType.LEFT,
             onColumn = BakeIngredientsTable.ingredient_delta_id,
             otherColumn = IngredientDeltaTable.id,
           ).selectAll()
@@ -192,7 +202,7 @@ class BakeRepositoryImpl : BakeRepository {
         BakeInstructionsTable
           .join(
             InstructionDeltaTable,
-            JoinType.INNER,
+            JoinType.LEFT,
             onColumn = BakeInstructionsTable.instruction_delta_id,
             otherColumn = InstructionDeltaTable.id,
           ).selectAll()
@@ -305,7 +315,7 @@ class BakeRepositoryImpl : BakeRepository {
         BakeIngredientsTable
           .join(
             IngredientDeltaTable,
-            JoinType.INNER,
+            JoinType.LEFT,
             onColumn = BakeIngredientsTable.ingredient_delta_id,
             otherColumn = IngredientDeltaTable.id,
           ).selectAll()
@@ -317,7 +327,7 @@ class BakeRepositoryImpl : BakeRepository {
         BakeInstructionsTable
           .join(
             InstructionDeltaTable,
-            JoinType.INNER,
+            JoinType.LEFT,
             onColumn = BakeInstructionsTable.instruction_delta_id,
             otherColumn = InstructionDeltaTable.id,
           ).selectAll()
@@ -427,6 +437,30 @@ class BakeRepositoryImpl : BakeRepository {
       }
     }
 
+  override suspend fun addBakeIngredient(
+    bakeId: Uuid,
+    request: AddBakeIngredientPayload,
+  ): BakeIngredientPayload = insertBakeIngredient(bakeId, request)
+
+  override suspend fun omitBakeIngredient(
+    bakeId: Uuid,
+    bakeIngredientId: Uuid,
+  ) {
+    markBakeIngredientOmitted(bakeId, bakeIngredientId)
+  }
+
+  override suspend fun addBakeInstruction(
+    bakeId: Uuid,
+    request: AddBakeInstructionPayload,
+  ): BakeInstructionPayload = insertBakeInstruction(bakeId, request)
+
+  override suspend fun omitBakeInstruction(
+    bakeId: Uuid,
+    bakeInstructionId: Uuid,
+  ) {
+    markBakeInstructionOmitted(bakeId, bakeInstructionId)
+  }
+
   override suspend fun completeBake(
     bakeId: Uuid,
     payload: CompleteBakePayload,
@@ -448,16 +482,8 @@ class BakeRepositoryImpl : BakeRepository {
         it[BakesTable.end_datetime] = now
       }
 
-      BakeIngredientsTable
-        .selectAll()
-        .where { BakeIngredientsTable.bake_id eq bakeId }
-        .toList()
-        .forEach { row -> completeBakeIngredient(row, payload.setDeltasAsBest, now) }
-
-      BakeInstructionsTable
-        .selectAll()
-        .where { BakeInstructionsTable.bake_id eq bakeId }
-        .toList()
-        .forEach { row -> completeBakeInstruction(row, payload.setDeltasAsBest, now) }
+      val recipeId = bakeRow[BakesTable.recipe_id]
+      completeBakeIngredients(bakeId, recipeId, payload.setDeltasAsBest, now)
+      completeBakeInstructions(bakeId, recipeId, payload.setDeltasAsBest, now)
     }
 }

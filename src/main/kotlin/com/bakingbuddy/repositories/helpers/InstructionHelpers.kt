@@ -1,6 +1,5 @@
 package com.bakingbuddy.repositories.helpers
 
-import com.bakingbuddy.api.errors.BadRequestException
 import com.bakingbuddy.api.errors.DataIntegrityException
 import com.bakingbuddy.api.errors.NotFoundException
 import com.bakingbuddy.database.InstructionDeltaTable
@@ -8,6 +7,7 @@ import com.bakingbuddy.database.InstructionsTable
 import com.bakingbuddy.models.instructions.AddInstructionPayload
 import com.bakingbuddy.models.instructions.Instruction
 import com.bakingbuddy.models.instructions.InstructionDeltaEntry
+import com.bakingbuddy.models.instructions.UpdateInstructionPayload
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
@@ -20,8 +20,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import kotlin.uuid.Uuid
-
-private const val ORDER_GAP = 10
 
 fun createInstructions(
   recipeId: Uuid,
@@ -111,7 +109,16 @@ fun insertInstruction(
   request: AddInstructionPayload,
 ): Instruction =
   transaction {
-    val order = resolveInsertionOrder(recipeId, request.previousInstructionId, request.nextInstructionId)
+    val order =
+      resolveInsertionOrder(
+        entityLabel = "Instruction",
+        previousParam = "previousInstructionId",
+        nextParam = "nextInstructionId",
+        previousId = request.previousInstructionId,
+        nextId = request.nextInstructionId,
+        activeOrders = { activeInstructionOrders(recipeId) },
+        rebalance = { rebalanceInstructionOrders(recipeId) },
+      )
 
     val instructionId = Uuid.random()
     val createdAt = Instant.now()
@@ -163,46 +170,6 @@ fun omitInstructionVersion(instructionId: Uuid): Instruction =
     )
   }
 
-private fun resolveInsertionOrder(
-  recipeId: Uuid,
-  previousInstructionId: Uuid?,
-  nextInstructionId: Uuid?,
-): Int {
-  val orders = activeInstructionOrders(recipeId)
-  val previousOrder =
-    previousInstructionId?.let { orders[it] ?: throw NotFoundException("Instruction", it.toString()) }
-  val nextOrder =
-    nextInstructionId?.let { orders[it] ?: throw NotFoundException("Instruction", it.toString()) }
-
-  if (previousOrder != null && nextOrder != null && previousOrder >= nextOrder) {
-    throw BadRequestException("previousInstructionId must currently come before nextInstructionId")
-  }
-
-  computeMidpointOrder(previousOrder, nextOrder)?.let { return it }
-
-  // No integer room between the neighbors (e.g. orders 10 and 11) — renumber everything with
-  // fresh gaps of ORDER_GAP and retry once against the new values.
-  rebalanceInstructionOrders(recipeId)
-  val refreshedOrders = activeInstructionOrders(recipeId)
-  val refreshedPrevious = previousInstructionId?.let { refreshedOrders.getValue(it) }
-  val refreshedNext = nextInstructionId?.let { refreshedOrders.getValue(it) }
-
-  return computeMidpointOrder(refreshedPrevious, refreshedNext)
-    ?: error("Unable to compute an insertion order for a new instruction on recipe $recipeId")
-}
-
-private fun computeMidpointOrder(
-  previousOrder: Int?,
-  nextOrder: Int?,
-): Int? =
-  when {
-    previousOrder == null && nextOrder == null -> ORDER_GAP
-    previousOrder == null -> nextOrder!!.takeIf { it > 1 }?.div(2)
-    nextOrder == null -> previousOrder + ORDER_GAP
-    nextOrder - previousOrder >= 2 -> previousOrder + (nextOrder - previousOrder) / 2
-    else -> null
-  }
-
 private fun activeInstructionOrders(recipeId: Uuid): Map<Uuid, Int> {
   val instructionJoin =
     InstructionsTable.join(
@@ -219,13 +186,14 @@ private fun activeInstructionOrders(recipeId: Uuid): Map<Uuid, Int> {
     .associate { row -> row[InstructionsTable.id] to row[InstructionDeltaTable.order] }
 }
 
-private data class CurrentInstructionValues(
+data class CurrentInstructionValues(
   val description: String,
   val notes: String?,
   val order: Int,
+  val omitted: Boolean,
 )
 
-private fun currentInstructionValues(instructionId: Uuid): CurrentInstructionValues {
+fun currentInstructionValues(instructionId: Uuid): CurrentInstructionValues {
   val instructionJoin =
     InstructionsTable.join(
       InstructionDeltaTable,
@@ -245,6 +213,7 @@ private fun currentInstructionValues(instructionId: Uuid): CurrentInstructionVal
     description = row[InstructionDeltaTable.description],
     notes = row[InstructionDeltaTable.notes],
     order = row[InstructionDeltaTable.order],
+    omitted = row[InstructionDeltaTable.omitted],
   )
 }
 
@@ -268,6 +237,7 @@ private fun rebalanceInstructionOrders(recipeId: Uuid) {
           description = row[InstructionDeltaTable.description],
           notes = row[InstructionDeltaTable.notes],
           order = row[InstructionDeltaTable.order],
+          omitted = row[InstructionDeltaTable.omitted],
         ) to row[InstructionsTable.id]
       }
 
@@ -285,6 +255,44 @@ private fun rebalanceInstructionOrders(recipeId: Uuid) {
   }
 }
 
+/**
+ * Appends a new delta version for an instruction and, unless [setAsBest] is false, points `best_version` at it.
+ * [sourceBakeId] records which bake the change came from (null for edits made directly on the recipe).
+ */
+fun writeInstructionDelta(
+  instructionId: Uuid,
+  description: String,
+  notes: String?,
+  order: Int,
+  omitted: Boolean,
+  sourceBakeId: Uuid? = null,
+  setAsBest: Boolean = true,
+  now: Instant = Instant.now(),
+): WrittenDelta {
+  val newVersion = nextInstructionDeltaVersion(instructionId)
+  val deltaId = Uuid.random()
+
+  InstructionDeltaTable.insert {
+    it[InstructionDeltaTable.id] = deltaId
+    it[InstructionDeltaTable.instruction_id] = instructionId
+    it[InstructionDeltaTable.version] = newVersion
+    it[InstructionDeltaTable.description] = description
+    it[InstructionDeltaTable.notes] = notes
+    it[InstructionDeltaTable.source_bake_id] = sourceBakeId
+    it[InstructionDeltaTable.created_at] = now
+    it[InstructionDeltaTable.order] = order
+    it[InstructionDeltaTable.omitted] = omitted
+  }
+
+  if (setAsBest) {
+    InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
+      it[InstructionsTable.best_version] = newVersion
+    }
+  }
+
+  return WrittenDelta(deltaId, newVersion)
+}
+
 private fun applyInstructionDelta(
   instructionId: Uuid,
   description: String,
@@ -298,6 +306,47 @@ private fun applyInstructionDelta(
       .where { InstructionsTable.id eq instructionId }
       .singleOrNull() ?: throw NotFoundException("Instruction", instructionId.toString())
 
+  val written =
+    writeInstructionDelta(
+      instructionId = instructionId,
+      description = description,
+      notes = notes,
+      order = order,
+      omitted = omitted,
+    )
+
+  return Instruction(
+    id = instructionId,
+    recipeId = instructionRow[InstructionsTable.recipe_id],
+    bestVersion = written.version,
+    notes = notes,
+    createdAt = instructionRow[InstructionsTable.created_at],
+    description = description,
+    order = order,
+  )
+}
+
+/**
+ * Edits an instruction on the recipe by writing a new delta version. The current `omitted` state is carried forward, so
+ * editing never brings a removed instruction back.
+ */
+fun updateInstructionVersion(
+  instructionId: Uuid,
+  request: UpdateInstructionPayload,
+): Instruction =
+  transaction {
+    val current = currentInstructionValues(instructionId)
+
+    applyInstructionDelta(
+      instructionId = instructionId,
+      description = request.description,
+      notes = request.notes,
+      order = request.order,
+      omitted = current.omitted,
+    )
+  }
+
+fun nextInstructionDeltaVersion(instructionId: Uuid): Int {
   val maxVersionExpr = InstructionDeltaTable.version.max()
   val highestVersion =
     InstructionDeltaTable
@@ -305,31 +354,7 @@ private fun applyInstructionDelta(
       .where { InstructionDeltaTable.instruction_id eq instructionId }
       .single()[maxVersionExpr] ?: 0
 
-  val newVersion = highestVersion + 1
-
-  InstructionDeltaTable.insert {
-    it[InstructionDeltaTable.instruction_id] = instructionId
-    it[InstructionDeltaTable.version] = newVersion
-    it[InstructionDeltaTable.description] = description
-    it[InstructionDeltaTable.notes] = notes
-    it[InstructionDeltaTable.created_at] = Instant.now()
-    it[InstructionDeltaTable.order] = order
-    it[InstructionDeltaTable.omitted] = omitted
-  }
-
-  InstructionsTable.update({ InstructionsTable.id eq instructionId }) {
-    it[InstructionsTable.best_version] = newVersion
-  }
-
-  return Instruction(
-    id = instructionId,
-    recipeId = instructionRow[InstructionsTable.recipe_id],
-    bestVersion = newVersion,
-    notes = notes,
-    createdAt = instructionRow[InstructionsTable.created_at],
-    description = description,
-    order = order,
-  )
+  return highestVersion + 1
 }
 
 data class BestInstructionDelta(

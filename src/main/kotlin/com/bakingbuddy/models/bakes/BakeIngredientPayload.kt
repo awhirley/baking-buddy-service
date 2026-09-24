@@ -7,7 +7,7 @@ import kotlin.uuid.Uuid
 @Serializable
 data class BakeIngredientPayload(
   val bakeIngredientId: Uuid,
-  val initialDeltaValues: IngredientDeltaEntry,
+  val initialDeltaValues: IngredientDeltaEntry?,
   val updatedDeltaValues: BakeIngredient,
   val completedBakeDeltaId: Uuid?,
 )
@@ -18,4 +18,5 @@ data class BakeIngredient(
   val updatedName: String,
   val updatedNotes: String?,
   val updatedOrder: Int,
+  val updatedOmitted: Boolean,
 )
