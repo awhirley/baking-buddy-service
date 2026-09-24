@@ -31,8 +31,8 @@ dependencies {
   implementation("io.ktor:ktor-client-core")
   implementation("io.ktor:ktor-client-cio")
 
-  implementation("io.ktor:ktor-server-openapi:3.5.2")
-  implementation("io.ktor:ktor-server-routing-openapi:3.5.2")
+  implementation("io.ktor:ktor-server-openapi:3.6.0")
+  implementation("io.ktor:ktor-server-routing-openapi:3.6.0")
 
   implementation("org.jetbrains.exposed:exposed-core:1.5.0")
   implementation("org.jetbrains.exposed:exposed-jdbc:1.5.0")
@@ -44,7 +44,7 @@ dependencies {
   testImplementation(kotlin("test"))
   testImplementation(ktorLibs.server.testHost)
   testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
-  testImplementation("io.kotest:kotest-assertions-core:6.2.4")
+  testImplementation("io.kotest:kotest-assertions-core:6.2.5")
   testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("io.ktor:ktor-server-test-host")
   testImplementation("io.ktor:ktor-client-content-negotiation")
